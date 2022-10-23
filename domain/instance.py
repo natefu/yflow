@@ -1,17 +1,15 @@
 from .base import Base
 
 
-class Process(Base):
-    def __init__(
-            self, name, version, scheme, id=None,  deprecated=False, created=None, updated=None, **args
-    ):
+class Instance(Base):
+    def __init__(self, id, node, state, scheme, created=None, updated=None, completed=None, **args):
         self._id = id
-        self._name = name
-        self._version = version
+        self._node = node
+        self._state = state
         self._scheme = scheme
-        self._deprecated = deprecated
         self._created = created
         self._updated = updated
+        self._completed = completed
 
     @property
     def id(self):
@@ -22,20 +20,20 @@ class Process(Base):
         self._id = id
 
     @property
-    def name(self):
-        return self._name
+    def node(self):
+        return self._node
 
-    @name.setter
-    def name(self, name: str):
-        self._name = name
+    @node.setter
+    def node(self, node):
+        self._node = node
 
     @property
-    def version(self):
-        return self._version
+    def state(self):
+        return self._state
 
-    @version.setter
-    def version(self, state: int):
-        self._version = state
+    @state.setter
+    def state(self, state):
+        self._state = state
 
     @property
     def scheme(self):
@@ -44,14 +42,6 @@ class Process(Base):
     @scheme.setter
     def scheme(self, scheme: dict):
         self._scheme = scheme
-
-    @property
-    def deprecated(self):
-        return self._deprecated
-
-    @deprecated.setter
-    def deprecated(self, deprecated: bool):
-        self._deprecated = deprecated
 
     @property
     def created(self):
@@ -68,3 +58,11 @@ class Process(Base):
     @updated.setter
     def updated(self, updated):
         self._updated = updated
+
+    @property
+    def completed(self):
+        return self._completed
+
+    @completed.setter
+    def completed(self, completed):
+        self._completed = completed
