@@ -20,9 +20,8 @@ STATE_MAPPING = {
 
 class TicketRuntime:
     def __init__(self, ticket_id):
-        self.ticket: Ticket = Ticket.objects.get(pk=ticket_id)
         self.state: TicketState = self.get_state()
-        self.executor: TicketExecutor = TicketExecutor(self.ticket)
+        self.executor: TicketExecutor = TicketExecutor(ticket_id)
 
     def run(self):
         self.state.run()
@@ -46,5 +45,9 @@ class TicketRuntime:
         self.state.close()
 
     def get_state(self) -> TicketState:
-        if self.ticket.state in STATE_MAPPING:
-            return STATE_MAPPING[self.ticket.state](self)
+        if self.executor.ticket.state in STATE_MAPPING:
+            return STATE_MAPPING[self.executor.ticket.state](self)
+
+    def set_state(self, state: str):
+        self.executor.set_state(state)
+        self.state = STATE_MAPPING[state](self)

@@ -1,3 +1,4 @@
+# element
 START_EVENT: str = 'startEvent'
 END_EVENT: str = 'endEvent'
 ACTIVITY_TASK: str = 'activity'
@@ -7,3 +8,8 @@ BUILT_IN_TASK: str = 'built_in'
 SUB_TICKET: str = 'sub'
 CALLBACK: str = 'callback'
 PARALLEL_DIVERGING_GATEWAY: str = 'parallelGateway'
+PARALLEL_CONVERGING_AND_GATEWAY: str = 'convergingAndGateway'
+PARALLEL_CONVERGING_OR_GATEWAY: str = 'convergingOrGateway'
+INCLUSIVE_DIVERGING_GATEWAY: str = 'inclusiveDivergingGateway'
+INCLUSIVE_CONVERGING_GATEWAY: str = 'inclusiveConvergingGateway'
+EXCLUSIVE_GATEWAY: str = 'exclusiveGateway'

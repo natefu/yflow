@@ -1,12 +1,17 @@
 from abc import abstractmethod, ABCMeta
-from constants import READY, RUNNING, RUN, START_EVENT
+from constants import (
+    READY, RUNNING, RUN, START_EVENT, FINISHED, FAILED, TERMINATED, CLOSED, REVOKED, FAIL
+)
+from django.utils.timezone import now
+from engine.runtime import TicketRuntime
 from domain import Ticket, Node, NodeFlow
+from storage.mysql import node_operator, node_flow_operator
 
 
 class TicketState(metadata=ABCMeta):
 
     def __init__(self, runtime):
-        self.runtime = runtime
+        self.runtime: TicketRuntime = runtime
 
     @abstractmethod
     def run(self):
@@ -39,188 +44,192 @@ class TicketState(metadata=ABCMeta):
 
 class TicketReadyState(TicketState):
     def run(self):
-        ticket = self.runtime.ticket
+        ticket: Ticket = self.runtime.executor.ticket
         node_configs = ticket.scheme.get('nodes', {})
         flow_configs = ticket.scheme.get('flows', {})
         nodes = []
         for node_config in node_configs:
             node = Node(
-                ticket=ticket, identifier=node_config.get('identifier'), name=node_config.get('name'),
-                state=READY, element=node_config.get('element'), variables={}, context={}, scheme=node_config,
-                condition=node_config.get('condition')
+                ticket=ticket.id, identifier=node_config.get('identifier'), name=node_config.get('name'),
+                state=READY, element=node_config.get('element'), variables={}, context={},
+                scheme=node_config.get('scheme', {}), condition=node_config.get('condition', ''), created=now(),
+                updated=now()
             )
             nodes.append(node)
-        Node.objects.bulk_create(nodes)
+        node_operator.batch_create_nodes(nodes=nodes)
         flows = []
         for flow_config in flow_configs:
             flow = NodeFlow(
-                source=Node.objects.get(ticket=ticket, identifier=flow_config.get('source')),
-                target=Node.objects.get(ticket=ticket, identifier=flow_config.get('target')),
+                source=node_operator.get_node_by_query(ticket=ticket.id, identifier=flow_config.get('source')),
+                target=node_operator.get_node_by_query(ticket=ticket.id, identifier=flow_config.get('target')),
                 condition=flow_config.get('condition'), name=flow_config.get('name')
             )
             flows.append(flow)
-        NodeFlow.objects.bulk_create(flows)
-        self.runtime.executor.set_state(RUNNING)
-        self.runtime.executor.dispatch_ticket()
-        node = Node.objects.get(ticket=ticket, element=START_EVENT)
+        node_flow_operator.batch_create_node_flows(node_flows=flows)
+        self.runtime.set_state(RUNNING)
+        node = node_operator.get_node_by_query(ticket=ticket.id, element=START_EVENT)
         self.runtime.executor.dispatch_node(ticket_id=ticket.id, node_id=node.id, command=RUN)
 
     def complete(self):
-        pass
+        raise NotImplementedError
 
     def fail(self):
-        pass
+        raise NotImplementedError
 
     def terminate(self):
-        pass
+        self.runtime.set_state(TERMINATED)
 
     def close(self):
-        pass
+        self.runtime.set_state(CLOSED)
 
     def revoke(self):
-        pass
+        self.runtime.set_state(REVOKED)
 
     def retry(self):
-        pass
+        raise NotImplementedError
 
 
 class TicketRunningState(TicketState):
     def run(self):
-        pass
+        raise NotImplementedError
 
     def complete(self):
-        pass
+        self.runtime.set_state(FINISHED)
 
     def fail(self):
-        pass
+        self.runtime.set_state(FAILED)
 
     def terminate(self):
-        pass
+        self.runtime.set_state(TERMINATED)
 
     def close(self):
-        pass
+        self.runtime.set_state(CLOSED)
 
     def revoke(self):
-        pass
+        self.runtime.set_state(REVOKED)
 
     def retry(self):
-        pass
+        raise NotImplementedError
 
 
 class TicketFinishedState(TicketState):
 
     def run(self):
-        pass
+        raise NotImplementedError
 
     def complete(self):
-        pass
+        raise NotImplementedError
 
     def fail(self):
-        pass
+        raise NotImplementedError
 
     def terminate(self):
-        pass
+        raise NotImplementedError
 
     def close(self):
-        pass
+        raise NotImplementedError
 
     def revoke(self):
-        pass
+        raise NotImplementedError
 
     def retry(self):
-        pass
+        raise NotImplementedError
 
 
 class TicketFailedState(TicketState):
 
     def run(self):
-        pass
+        raise NotImplementedError
 
     def complete(self):
-        pass
+        raise NotImplementedError
 
     def fail(self):
-        pass
+        raise NotImplementedError
 
     def terminate(self):
-        pass
+        self.runtime.set_state(TERMINATED)
 
     def close(self):
-        pass
+        self.runtime.set_state(CLOSED)
 
     def revoke(self):
-        pass
+        self.runtime.set_state(REVOKED)
 
     def retry(self):
-        pass
+        self.runtime.set_state(RUNNING)
+        for node in self.runtime.ticket.nodes.filter(state=FAILED):
+            self.runtime.dispatch_node(
+                ticket_id=self.runtime.ticket.id, node_id=node.id, command=FAIL
+            )
 
 
 class TicketTerminatedState(TicketState):
     def run(self):
-        pass
+        raise NotImplementedError
 
     def complete(self):
-        pass
+        raise NotImplementedError
 
     def fail(self):
-        pass
+        raise NotImplementedError
 
     def terminate(self):
-        pass
+        raise NotImplementedError
 
     def close(self):
-        pass
+        raise NotImplementedError
 
     def revoke(self):
-        pass
+        raise NotImplementedError
 
     def retry(self):
-        pass
+        raise NotImplementedError
 
 
 class TicketClosedState(TicketState):
 
     def run(self):
-        pass
+        raise NotImplementedError
 
     def complete(self):
-        pass
+        raise NotImplementedError
 
     def fail(self):
-        pass
+        raise NotImplementedError
 
     def terminate(self):
-        pass
+        raise NotImplementedError
 
     def close(self):
-        pass
+        raise NotImplementedError
 
     def revoke(self):
-        pass
+        raise NotImplementedError
 
     def retry(self):
-        pass
+        raise NotImplementedError
 
 
 class TicketRevokedState(TicketState):
 
     def run(self):
-        pass
+        raise NotImplementedError
 
     def complete(self):
-        pass
+        raise NotImplementedError
 
     def fail(self):
-        pass
+        raise NotImplementedError
 
     def terminate(self):
-        pass
+        raise NotImplementedError
 
     def close(self):
-        pass
+        raise NotImplementedError
 
     def revoke(self):
-        pass
+        raise NotImplementedError
 
     def retry(self):
-        pass
+        raise NotImplementedError

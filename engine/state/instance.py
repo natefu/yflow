@@ -1,10 +1,13 @@
 from abc import abstractmethod, ABCMeta
+from constants import RUNNING, FAILED, FINISHED, FAIL, FINISH, APPROVED, APPROVE, DENIED, DENY
+from domain import Instance, Node, Ticket
+from engine.runtime import InstanceRuntime
 
 
 class InstanceState(metaclass=ABCMeta):
 
     def __init__(self, runtime):
-        self.runtime = runtime
+        self.runtime: InstanceRuntime = runtime
 
     @abstractmethod
     def run(self):
@@ -29,19 +32,24 @@ class InstanceState(metaclass=ABCMeta):
 
 class InstanceReadyState(InstanceState):
     def run(self):
-        pass
+        node: Node = self.runtime.executor.node
+        ticket: Ticket = self.runtime.executor.ticket
+        if ticket.state != RUNNING or node.state != RUNNING:
+            return
+        self.runtime.set_state(RUNNING)
+        self.runtime.executor.run()
 
     def complete(self):
-        pass
+        raise NotImplementedError
 
     def fail(self):
-        pass
+        raise NotImplementedError
 
     def approve(self):
-        pass
+        raise NotImplementedError
 
     def deny(self):
-        pass
+        raise NotImplementedError
 
 
 class InstanceRunningState(InstanceState):
@@ -49,81 +57,97 @@ class InstanceRunningState(InstanceState):
         pass
 
     def complete(self):
-        pass
+        self.runtime.set_state(FINISHED)
+        self.runtime.executor.dispatch_node(
+            ticket_id=self.runtime.executor.ticket.id, node_id=self.runtime.executor.node.id,
+            command=FINISH
+        )
 
     def fail(self):
-        pass
+        self.runtime.set_state(FAILED)
+        self.runtime.executor.dispatch_node(
+            ticket_id=self.runtime.executor.ticket.id, node_id=self.runtime.executor.node.id,
+            command=FAIL
+        )
 
     def approve(self):
-        pass
+        self.runtime.set_state(APPROVED)
+        self.runtime.executor.dispatch_node(
+            ticket_id=self.runtime.executor.ticket.id, node_id=self.runtime.executor.node.id,
+            command=APPROVE
+        )
 
     def deny(self):
-        pass
+        self.runtime.set_state(DENIED)
+        self.runtime.executor.dispatch_node(
+            ticket_id=self.runtime.executor.ticket.id, node_id=self.runtime.executor.node.id,
+            command=DENY
+        )
 
 
 class InstanceFinishedState(InstanceState):
     def run(self):
-        pass
+        raise NotImplementedError
 
     def complete(self):
-        pass
+        raise NotImplementedError
 
     def fail(self):
-        pass
+        raise NotImplementedError
 
     def approve(self):
-        pass
+        raise NotImplementedError
 
     def deny(self):
-        pass
+        raise NotImplementedError
 
 
 class InstanceFailedState(InstanceState):
     def run(self):
-        pass
+        raise NotImplementedError
 
     def complete(self):
-        pass
+        raise NotImplementedError
 
     def fail(self):
-        pass
+        raise NotImplementedError
 
     def approve(self):
-        pass
+        raise NotImplementedError
 
     def deny(self):
-        pass
+        raise NotImplementedError
 
 
 class InstanceApprovedState(InstanceState):
     def run(self):
-        pass
+        raise NotImplementedError
 
     def complete(self):
-        pass
+        raise NotImplementedError
 
     def fail(self):
-        pass
+        raise NotImplementedError
 
     def approve(self):
-        pass
+        raise NotImplementedError
 
     def deny(self):
-        pass
+        raise NotImplementedError
 
 
 class InstanceDeniedState(InstanceState):
     def run(self):
-        pass
+        raise NotImplementedError
 
     def complete(self):
-        pass
+        raise NotImplementedError
 
     def fail(self):
-        pass
+        raise NotImplementedError
 
     def approve(self):
-        pass
+        raise NotImplementedError
 
     def deny(self):
-        pass
+        raise NotImplementedError

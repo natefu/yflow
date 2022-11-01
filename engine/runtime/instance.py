@@ -3,6 +3,7 @@ from engine.state import (
     InstanceRunningState, InstanceFinishedState, InstanceApprovedState, InstanceFailedState, InstanceDeniedState,
     InstanceReadyState, InstanceState
 )
+from engine.executor import InstanceExecutor
 
 
 STATE_MAPPING = {
@@ -17,10 +18,8 @@ STATE_MAPPING = {
 
 class InstanceRuntime:
     def __init__(self, ticket_id, node_id, instance_id):
-        self.ticket = ticket_id
-        self.node = node_id
-        self.instance = instance_id
         self.state = self.get_state()
+        self.executor = InstanceExecutor(ticket_id, node_id, instance_id)
 
     def run(self):
         self.state.run()
@@ -38,5 +37,9 @@ class InstanceRuntime:
         self.state.fail()
 
     def get_state(self) -> InstanceState:
-        if self.instance.state in STATE_MAPPING:
-            return STATE_MAPPING[self.instance.state](self)
+        if self.executor.instance.state in STATE_MAPPING:
+            return STATE_MAPPING[self.executor.instance.state](self)
+
+    def set_state(self, state):
+        self.executor.set_state(state)
+        self.state = STATE_MAPPING[state](self)

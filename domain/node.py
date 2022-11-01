@@ -60,7 +60,6 @@ class Node(Base):
     def state(self, state: str):
         self._state = state
 
-
     @property
     def element(self):
         return self._element
@@ -68,6 +67,22 @@ class Node(Base):
     @element.setter
     def element(self, element: str):
         self._element = element
+
+    @property
+    def variables(self):
+        return self._variables
+
+    @variables.setter
+    def variables(self, variables: dict):
+        self._variables = variables
+
+    @property
+    def context(self):
+        return self._context
+
+    @variables.setter
+    def context(self, context):
+        self._context = context
 
     @property
     def scheme(self):

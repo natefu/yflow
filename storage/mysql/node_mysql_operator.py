@@ -18,6 +18,9 @@ class NodeMysqlOperator(NodeOperator):
     def create_node(self, node: Node) -> Node:
         return self.base_operator.create_object(domain=node, times={'created': now(), 'updated': now()})
 
+    def batch_create_nodes(self, nodes: list[Node]) -> None:
+        self.base_operator.batch_create_objects(domains=nodes)
+
     def update_node(self, pk: int, partial: bool, **updates) -> Node:
         if 'state' in updates and updates['state'] in [APPROVED, DENIED, FAILED, FINISHED, SKIPPED]:
             return self.base_operator.update_object(
@@ -30,6 +33,9 @@ class NodeMysqlOperator(NodeOperator):
 
     def get_node(self, pk: int) -> Node:
         return self.base_operator.get_object(pk=pk)
+
+    def get_node_by_query(self, **query_params) -> Node:
+        return self.base_operator.get_objects_by_query(**query_params)
 
     def query_nodes(self, **query_params) -> list[Node]:
         return self.base_operator.query_objects(**query_params)
@@ -44,6 +50,9 @@ class NodeFlowMysqlOperator(NodeFlowOperator):
 
     def create_node_flow(self, node_flow: NodeFlow) -> NodeFlow:
         return self.base_operator.create_object(domain=node_flow)
+
+    def batch_create_node_flows(self, node_flows: list[NodeFlow]):
+        return self.base_operator.batch_create_objects(domains=node_flows)
 
     def get_node_flow(self, pk: int) -> NodeFlow:
         return self.base_operator.get_object(pk=pk)
