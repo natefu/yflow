@@ -2,7 +2,7 @@ from .base import Base
 from .instance import Instance
 from .node import Node, NodeFlow
 from .process import Process
-from .ticket import Ticket
+from .ticket import Ticket, TicketToken
 
 
 __all__ = [
@@ -19,5 +19,5 @@ __all__ = [
     'Process',
 
     # ticket
-    'Ticket',
+    'Ticket', 'TicketToken',
 ]

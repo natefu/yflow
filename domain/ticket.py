@@ -96,3 +96,61 @@ class Ticket(Base):
     @completed.setter
     def completed(self, completed):
         self._completed = completed
+
+
+class TicketToken(Base):
+    def __init__(self, id, ticket, token, count, created=None, updated=None, **args):
+        self._id = id
+        self._ticket = ticket
+        self._token = token
+        self._count = count
+        self._created = created
+        self._updated = updated
+
+    @property
+    def id(self):
+        return self._id
+
+    @id.setter
+    def id(self, id: int):
+        self._id = id
+
+    @property
+    def ticket(self):
+        return self._ticket
+
+    @ticket.setter
+    def ticket(self, ticket):
+        self._ticket = ticket
+
+    @property
+    def token(self):
+        return self._token
+
+    @token.setter
+    def token(self, token):
+        self._token = token
+
+    @property
+    def count(self):
+        return self._count
+
+    @count.setter
+    def count(self, count):
+        self._count = count
+
+    @property
+    def created(self):
+        return self._created
+
+    @created.setter
+    def created(self, created):
+        self._created = created
+
+    @property
+    def updated(self):
+        return self._updated
+
+    @updated.setter
+    def updated(self, updated):
+        self._updated = updated

@@ -1,7 +1,7 @@
 from .instance import InstanceSerializer
 from .node import NodeSerializer, NodeFlowSerializer
 from .process import ProcessSerializer
-from .ticket import TicketSerializer
+from .ticket import TicketSerializer, TicketTokenSerializer
 
 
 __all__ = [
@@ -15,6 +15,6 @@ __all__ = [
     'ProcessSerializer',
 
     # ticket
-    'TicketSerializer',
+    'TicketSerializer', 'TicketTokenSerializer',
 ]
 
