@@ -3,7 +3,7 @@ from .base import Base
 
 class Ticket(Base):
     def __init__(
-            self, name, state, variables, context, scheme, process=None, created=None, updated=None, id=None,
+            self, name, variables, context, scheme, state=None, process=None, created=None, updated=None, id=None,
             completed=None, **args
     ):
         self._id = id
@@ -16,6 +16,9 @@ class Ticket(Base):
         self._created = created
         self._updated = updated
         self._completed = completed
+
+    def parse_request(self, data):
+        return Ticket(**data)
 
     @property
     def id(self):
@@ -106,6 +109,9 @@ class TicketToken(Base):
         self._count = count
         self._created = created
         self._updated = updated
+
+    def parse_request(self, data):
+        return TicketToken(**data)
 
     @property
     def id(self):

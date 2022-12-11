@@ -19,9 +19,9 @@ STATE_MAPPING = {
 
 
 class NodeRuntime:
-    def __init__(self, ticket_id, node_id):
+    def __init__(self, ticket_id: int, node_id: int, tokens: list[str]):
         self.state = self.get_state()
-        self.executor: NodeExecutor = NodeExecutor(ticket_id, node_id)
+        self.executor: NodeExecutor = NodeExecutor(ticket_id, node_id, tokens)
 
     def run(self):
         self.state.run()

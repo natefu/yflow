@@ -45,9 +45,9 @@ class TicketCallbackScheduler(Scheduler):
 class NodeScheduler(Scheduler):
     name = 'NodeScheduler'
 
-    def run(self, ticket_id: int, node_id: int, node_command: str):
+    def run(self, ticket_id: int, node_id: int, tokens: list[str], node_command: str):
         from engine.runtime import NodeRuntime
-        runtime = NodeRuntime(ticket_id=ticket_id, node_id=node_id)
+        runtime = NodeRuntime(ticket_id=ticket_id, node_id=node_id, tokens=tokens)
         try:
             handler = getattr(runtime, node_command)
             return handler()
@@ -105,9 +105,9 @@ class SchedulerMixin:
             kwargs={'instance_id': instance_id, 'instance_command': command}
         )
 
-    def dispatch_node(self, ticket_id: int, node_id: int, command: str) -> None:
-        instance_scheduler.apply_async(
-            kwargs={'ticket_id': ticket_id, 'node_id': node_id, 'node_command': command}
+    def dispatch_node(self, ticket_id: int, node_id: int, tokens: list[str], command: str) -> None:
+        node_scheduler.apply_async(
+            kwargs={'ticket_id': ticket_id, 'node_id': node_id, 'tokens': tokens, 'node_command': command}
         )
 
     def dispatch_node_callback(self, node_id: int, command: str) -> None:

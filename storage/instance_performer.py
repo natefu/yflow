@@ -4,20 +4,20 @@ from domain import Instance
 
 class InstanceOperator(metaclass=ABCMeta):
 
-    def create_instance(self, instance: Instance) -> Instance:
+    def create(self, instance: Instance) -> Instance:
         raise NotImplementedError
 
-    def batch_create_instances(self, instances: list[Instance]):
+    def batch_create(self, instances: list[Instance]):
         raise NotImplementedError
 
-    def update_instance(self, pk: int, partial: bool, **updates) -> Instance:
+    def update(self, pk: int, partial: bool, **updates) -> Instance:
         raise NotImplementedError
 
-    def get_instance(self, pk: int) -> Instance:
+    def get(self, pk: int) -> Instance:
         raise NotImplementedError
 
-    def query_instance(self, **query_params) -> list[Instance]:
+    def query(self, **query_params) -> list[Instance]:
         raise NotImplementedError
 
-    def delete_instances(self, **query_params):
+    def delete(self, **query_params):
         raise NotImplementedError

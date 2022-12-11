@@ -13,16 +13,19 @@ class ProcessMysqlOperator(ProcessOperator):
             domain=Process, model=ProcessModel, serializer=ProcessSerializer
         )
 
-    def create_process(self, process: Process) -> Process:
+    def create(self, process: Process) -> Process:
         return self.base_operator.create_object(domain=process, times={'created': now(), 'updated': now()})
 
-    def update_process(self, pk: int, partial: bool, **updates) -> Process:
+    def update(self, pk: int, partial: bool, **updates) -> Process:
         return self.base_operator.update_object(
             pk=pk, partial=partial, times={'updated': now()}, **updates
         )
 
-    def get_process(self, pk: int) -> Process:
+    def get(self, pk: int) -> Process:
         return self.base_operator.get_object(pk=pk)
 
-    def query_processes(self, **query_params) -> list[Process]:
+    def get_by_query(self, **query_params) -> Process:
+        return self.base_operator.get_objects_by_query(**query_params)
+
+    def query(self, **query_params) -> list[Process]:
         return self.base_operator.query_objects(**query_params)

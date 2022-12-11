@@ -11,6 +11,9 @@ class Instance(Base):
         self._updated = updated
         self._completed = completed
 
+    def parse_request(self, data):
+        return Instance(**data)
+
     @property
     def id(self):
         return self._id

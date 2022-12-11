@@ -16,12 +16,12 @@ from utils.engine import is_qualified
 class NodeExecutor(SchedulerMixin):
 
     def __init__(self, ticket_id: int, node_id: int, tokens: list[str]):
-        self.node = node_operator.get_node(pk=node_id)
-        self.ticket = ticket_operator.get_ticket(pk=ticket_id)
+        self.node = node_operator.get(pk=node_id)
+        self.ticket = ticket_operator.get(pk=ticket_id)
         self.tokens = tokens
 
     def set_state(self, state):
-        node_operator.update_node(pk=self.node.id, partial=True, state=state)
+        node_operator.update(pk=self.node.id, partial=True, state=state)
 
     def get_state(self) -> str:
         return self.node.state
@@ -33,7 +33,7 @@ class NodeExecutor(SchedulerMixin):
         return self.get_executor().get_next_nodes()
 
     def set_ticket_state(self, state):
-        ticket_operator.update_ticket(pk=self.ticket.id, partial=True, state=state)
+        ticket_operator.update(pk=self.ticket.id, partial=True, state=state)
 
     def get_ticket_state(self) -> str:
 
@@ -50,7 +50,7 @@ class NodeExecutor(SchedulerMixin):
         2. 若工单正在running，并且节点状态，则状态不变
         """
 
-        if node_operator.get_node_by_query(ticket_id=self.ticket.id, state__in=[FAILED]):
+        if node_operator.get_by_query(ticket_id=self.ticket.id, state__in=[FAILED]):
             return FAILED
         return RUNNING
 
@@ -84,12 +84,12 @@ class BaseNodeExecutor:
         pass
 
     def get_next_nodes(self):
-        node_flows: list[NodeFlow] = node_flow_operator.query_nodes(source_id=self.executor.node.id)
+        node_flows: list[NodeFlow] = node_flow_operator.query(source_id=self.executor.node.id)
         return [node_flow.target for node_flow in node_flows]
 
     def get_ticket_token(self):
         token = self.executor.tokens[-1]
-        return ticket_token_operator.get_ticket_token_by_query(ticket_id=self.executor.node.ticket, token=token)
+        return ticket_token_operator.get_by_query(ticket_id=self.executor.node.ticket, token=token)
 
 
 class HttpNodeExecutor(BaseNodeExecutor):
@@ -97,7 +97,7 @@ class HttpNodeExecutor(BaseNodeExecutor):
         super().__init__(executor)
 
     def run(self):
-        instance_operator.delete_instances(node_id=self.executor.node.id)
+        instance_operator.delete(node_id=self.executor.node.id)
         instances = []
         instance_scheme: dict = self.executor.node.scheme
         for partition in instance_scheme.get('partitions', []):
@@ -109,8 +109,8 @@ class HttpNodeExecutor(BaseNodeExecutor):
             instances.append(
                 Instance(id=None, node=self.executor.node.id, state=READY, scheme=scheme, created=now(), updated=now())
             )
-        instance_operator.batch_create_instances(instances=instances)
-        instances = instance_operator.query_instance(node=self.executor.node.id)
+        instance_operator.batch_create(instances=instances)
+        instances = instance_operator.query(node=self.executor.node.id)
         for instance in instances:
             self.executor.dispatch_instance(
                 ticket_id=self.executor.node.ticket, node_id=self.executor.node.id, instance_id=instance.id, command=RUN
@@ -129,7 +129,7 @@ class ReviewNodeExecutor(BaseNodeExecutor):
         super().__init__(executor)
 
     def run(self):
-        instance_operator.delete_instances(node_id=self.executor.node.id)
+        instance_operator.delete(node_id=self.executor.node.id)
         instances = []
         instance_scheme: dict = self.executor.node.scheme
         for partition in instance_scheme.get('partitions', []):
@@ -141,8 +141,8 @@ class ReviewNodeExecutor(BaseNodeExecutor):
             instances.append(
                 Instance(id=None, node=self.executor.node.id, state=READY, scheme=scheme, created=now(), updated=now())
             )
-        instance_operator.batch_create_instances(instances=instances)
-        instances = instance_operator.query_instance(node=self.executor.node.id)
+        instance_operator.batch_create(instances=instances)
+        instances = instance_operator.query(node=self.executor.node.id)
         for instance in instances:
             self.executor.dispatch_instance(
                 ticket_id=self.executor.node.ticket, node_id=self.executor.node.id, instance_id=instance.id, command=RUN
@@ -194,7 +194,7 @@ class ParallelGatewayNodeExecutor(BaseNodeExecutor):
 
     def run(self):
         token = TicketToken(None, self.executor.node.ticket, str(uuid.uuid1()), 0)
-        ticket_token_operator.create_ticket_token(token)
+        ticket_token_operator.create(token)
         self.executor.tokens.append(token.token)
         return FINISHED, self.executor.tokens
 
@@ -203,10 +203,10 @@ class ParallelGatewayNodeExecutor(BaseNodeExecutor):
         count = 0
         for _ in nodes:
             count += 1
-        token = ticket_token_operator.get_ticket_token_by_query(
+        token = ticket_token_operator.get_by_query(
             ticket_id=self.executor.node.ticket, token=self.executor.tokens[-1]
         )
-        ticket_token_operator.update_ticket_token(pk=token.id, partial=True, count=count)
+        ticket_token_operator.update(pk=token.id, partial=True, count=count)
         return nodes,
 
 
@@ -218,7 +218,7 @@ class ExclusiveGatewayNodeExecutor(BaseNodeExecutor):
         return FINISHED, self.executor.tokens
 
     def get_next_nodes(self):
-        flows: list[NodeFlow] = node_flow_operator.query_node_flows(source_id=self.executor.node.id)
+        flows: list[NodeFlow] = node_flow_operator.query(source_id=self.executor.node.id)
         for flow in flows:
             if is_qualified(self.executor.node, flow.condition):
                 return flow
@@ -230,14 +230,14 @@ class InclusiveDivergingGatewayNodeExecutor(BaseNodeExecutor):
 
     def run(self):
         token = TicketToken(None, self.executor.node.ticket, str(uuid.uuid1()), 0)
-        ticket_token_operator.create_ticket_token(token)
+        ticket_token_operator.create(token)
         self.executor.tokens.append(token.token)
         return FINISHED, self.executor.tokens
 
     def get_next_nodes(self):
-        flows: list[NodeFlow] = node_flow_operator.query_node_flows(source_id=self.executor.node.id)
+        flows: list[NodeFlow] = node_flow_operator.query(source_id=self.executor.node.id)
         next_nodes = []
-        token = ticket_token_operator.get_ticket_token_by_query(
+        token = ticket_token_operator.get_by_query(
             ticket_id=self.executor.node.ticket, token=self.executor.tokens[-1]
         )
         count = 0
@@ -245,7 +245,7 @@ class InclusiveDivergingGatewayNodeExecutor(BaseNodeExecutor):
             if is_qualified(self.executor.node, flow.condition):
                 count += 1
                 next_nodes.append(flow.target)
-        ticket_token_operator.update_ticket_token(pk=token.id, partial=True, count=count)
+        ticket_token_operator.update(pk=token.id, partial=True, count=count)
         return next_nodes
 
 
@@ -256,7 +256,7 @@ class AndConvergingGatewayNodeExecutor(BaseNodeExecutor):
     def run(self):
         ticket_token = self.get_ticket_token()
         ticket_token.count -= 1
-        ticket_token_operator.update_ticket_token(pk=ticket_token.id, partial=True, count=ticket_token.count)
+        ticket_token_operator.update(pk=ticket_token.id, partial=True, count=ticket_token.count)
         if ticket_token.count == 0:
             self.executor.tokens.pop()
             return FINISHED, self.executor.tokens
@@ -277,7 +277,7 @@ class OrConvergingGatewayNodeExecutor(BaseNodeExecutor):
     def run(self):
         ticket_token = self.get_ticket_token()
         ticket_token.count = 0
-        ticket_token_operator.update_ticket_token(pk=ticket_token.id, partial=True, count=0)
+        ticket_token_operator.update(pk=ticket_token.id, partial=True, count=0)
         self.executor.tokens.pop()
         return FINISHED, self.executor.tokens
 
@@ -295,7 +295,7 @@ class InclusiveConvergingGatewayNodeExecutor(BaseNodeExecutor):
     def run(self):
         ticket_token = self.get_ticket_token()
         ticket_token.count -= 1
-        ticket_token_operator.update_ticket_token(pk=ticket_token.id, partial=True, count=ticket_token.count)
+        ticket_token_operator.update(pk=ticket_token.id, partial=True, count=ticket_token.count)
         if ticket_token.count == 0:
             self.executor.tokens.pop()
             return FINISHED, self.executor.tokens

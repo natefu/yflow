@@ -13,6 +13,9 @@ class Process(Base):
         self._created = created
         self._updated = updated
 
+    def parse_request(self, data):
+        return Process(**data)
+
     @property
     def id(self):
         return self._id

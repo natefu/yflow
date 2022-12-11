@@ -20,6 +20,9 @@ class Node(Base):
         self._updated = updated
         self._completed = completed
 
+    def parse_request(self, data):
+        return Node(**data)
+
     @property
     def id(self):
         return self._id
@@ -80,7 +83,7 @@ class Node(Base):
     def context(self):
         return self._context
 
-    @variables.setter
+    @context.setter
     def context(self, context):
         self._context = context
 
@@ -132,6 +135,9 @@ class NodeFlow(Base):
         self._target = target
         self._condition = condition
         self._name = name
+
+    def parse_request(self, data):
+        return NodeFlow(**data)
 
     @property
     def id(self):

@@ -75,7 +75,7 @@ class NodeReadyState(NodeState):
         node: Node = self.runtime.executor.node
         _, tokens = self.runtime.executor.run()
         node.variables['tokens'] = tokens
-        node_operator.update_node(pk=node.id, partial=True, variables=node.variables)
+        node_operator.update(pk=node.id, partial=True, variables=node.variables)
         self.runtime.set_state(RUNNING)
 
 
@@ -105,7 +105,7 @@ class NodeRunningState(NodeState):
 
     def _base_action(self):
         node = self.runtime.executor.node
-        instances = instance_operator.query_instance(node_id=node.id)
+        instances = instance_operator.query(node_id=node.id)
         total_instances = len(instances)
         running_instances = len([instance for instance in instances if instance.state == RUNNING])
         if running_instances > 0:
@@ -186,13 +186,7 @@ class NodeFailedState(NodeState):
         raise NotImplementedError('NOT IMPLEMENT')
 
     def complete(self):
-        nodes = self.runtime.executor.get_next_nodes()
-        if not nodes:
-            self.runtime.executor.dispatch_ticket(
-                ticket_id=self.runtime.executor.ticket.id, command=DETECT
-            )
-        else:
-
+        pass
 
     def fail(self):
         raise NotImplementedError('NOT IMPLEMENT')

@@ -15,10 +15,10 @@ class TicketMysqlOperator(TicketOperator):
             domain=Ticket, model=TicketModel, serializer=TicketSerializer
         )
 
-    def create_ticket(self, ticket: Ticket) -> Ticket:
+    def create(self, ticket: Ticket) -> Ticket:
         return self.base_operator.create_object(domain=ticket, times={'created': now(), 'updated': now()})
 
-    def update_ticket(self, pk: int, partial: bool, **updates) -> Ticket:
+    def update(self, pk: int, partial: bool, **updates) -> Ticket:
         if 'state' in updates and updates['state'] in [FAILED, FINISHED, TERMINATED, REVOKED, CLOSED]:
             return self.base_operator.update_object(
                 pk=pk, partial=partial, times={'updated': now(), 'completed': now}, **updates
@@ -28,10 +28,10 @@ class TicketMysqlOperator(TicketOperator):
                 pk=pk, partial=partial, times={'updated': now()}, **updates
             )
 
-    def get_ticket(self, pk: int) -> Ticket:
+    def get(self, pk: int) -> Ticket:
         return self.base_operator.get_object(pk=pk)
 
-    def query_tickets(self, **query_params) -> list[Ticket]:
+    def query(self, **query_params) -> list[Ticket]:
         return self.base_operator.query_objects(**query_params)
 
 
@@ -42,19 +42,19 @@ class TicketTokenMysqlOperator(TicketTokenOperator):
             domain=TicketToken, model=TicketTokenModel, serializer=TicketTokenSerializer
         )
 
-    def create_ticket_token(self, token: TicketToken) -> TicketToken:
+    def create(self, token: TicketToken) -> TicketToken:
         return self.base_operator.create_object(domain=token, times={'created': now(), 'updated': now()})
 
-    def update_ticket_token(self, pk: int, partial: bool, **updates) -> TicketToken:
+    def update(self, pk: int, partial: bool, **updates) -> TicketToken:
         return self.base_operator.update_object(
             pk=pk, partial=partial, times={'updated': now()}, **updates
         )
 
-    def get_ticket_token(self, pk: int) -> TicketToken:
+    def get(self, pk: int) -> TicketToken:
         return self.base_operator.get_object(pk=pk)
 
-    def get_ticket_token_by_query(self, **query_params) -> TicketToken:
+    def get_by_query(self, **query_params) -> TicketToken:
         return self.base_operator.get_objects_by_query(**query_params)
 
-    def query_ticket_tokens(self, **query_params) -> list[TicketToken]:
+    def query(self, **query_params) -> list[TicketToken]:
         return self.base_operator.query_objects(**query_params)

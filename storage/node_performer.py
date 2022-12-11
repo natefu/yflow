@@ -4,35 +4,35 @@ from domain import Node, NodeFlow
 
 class NodeOperator(metaclass=ABCMeta):
 
-    def create_node(self, node: Node) -> Node:
+    def create(self, node: Node) -> Node:
         raise NotImplementedError
 
-    def batch_create_nodes(self, nodes: list[Node]) -> None:
+    def batch_create(self, nodes: list[Node]) -> None:
         raise NotImplementedError
 
-    def update_node(self, pk: int, partial: bool, **updates) -> Node:
+    def update(self, pk: int, partial: bool, **updates) -> Node:
         raise NotImplementedError
 
-    def get_node(self, pk: int) -> Node:
+    def get(self, pk: int) -> Node:
         raise NotImplementedError
 
-    def get_node_by_query(self, **query_params) -> Node:
+    def get_by_query(self, **query_params) -> Node:
         raise NotImplementedError
 
-    def query_nodes(self, **query_params) -> list[Node]:
+    def query(self, **query_params) -> list[Node]:
         raise NotImplementedError
 
 
 class NodeFlowOperator(metaclass=ABCMeta):
 
-    def create_node_flow(self, node_flow: NodeFlow) -> NodeFlow:
+    def create(self, node_flow: NodeFlow) -> NodeFlow:
         raise NotImplementedError
 
-    def batch_create_node_flows(self, node_flows: list[NodeFlow]):
+    def batch_create(self, node_flows: list[NodeFlow]):
         raise NotImplementedError
 
-    def get_node_flow(self, pk: int) -> NodeFlow:
+    def get(self, pk: int) -> NodeFlow:
         raise NotImplementedError
 
-    def query_node_flows(self, **query_params) -> list[NodeFlow]:
+    def query(self, **query_params) -> list[NodeFlow]:
         raise NotImplementedError

@@ -4,14 +4,17 @@ from domain import Process
 
 class ProcessOperator(metaclass=ABCMeta):
 
-    def create_process(self, process: Process) -> Process:
+    def create(self, process: Process) -> Process:
         raise NotImplementedError
 
-    def update_process(self, pk: int, partial: bool,  **updates) -> Process:
+    def update(self, pk: int, partial: bool,  **updates) -> Process:
         raise NotImplementedError
 
-    def get_process(self, pk: int) -> Process:
+    def get(self, pk: int) -> Process:
         raise NotImplementedError
 
-    def query_processes(self, **query_params) -> list[Process]:
+    def get_by_query(self, **query_params) -> Process:
+        raise NotImplementedError
+
+    def query(self, **query_params) -> list[Process]:
         raise NotImplementedError

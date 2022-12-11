@@ -14,13 +14,13 @@ class InstanceMysqlOperator(InstanceOperator):
             domain=Instance, model=InstanceModel, serializer=InstanceSerializer
         )
 
-    def create_instance(self, instance: Instance) -> Instance:
+    def create(self, instance: Instance) -> Instance:
         return self.base_operator.create_object(domain=instance, times={'created': now(), 'updated': now()})
 
-    def batch_create_instances(self, instances: list[Instance]):
+    def batch_create(self, instances: list[Instance]):
         return self.base_operator.batch_create_objects(domains=instances)
 
-    def update_instance(self, pk: int, partial: bool, **updates) -> Instance:
+    def update(self, pk: int, partial: bool, **updates) -> Instance:
         if 'state' in updates and updates['state'] in [FAILED, FINISHED, APPROVED, DENIED]:
             return self.base_operator.update_object(
                 pk=pk, partial=partial, times={'updated': now(), 'completed': now}, **updates
@@ -30,11 +30,11 @@ class InstanceMysqlOperator(InstanceOperator):
                 pk=pk, partial=partial, times={'updated': now()}, **updates
             )
 
-    def get_instance(self, pk: int) -> Instance:
+    def get(self, pk: int) -> Instance:
         return self.base_operator.get_object(pk=pk)
 
-    def query_instance(self, **query_params) -> list[Instance]:
+    def query(self, **query_params) -> list[Instance]:
         return self.base_operator.query_objects(**query_params)
 
-    def delete_instances(self, **query_params):
+    def delete(self, **query_params):
         return self.base_operator.delete_objects(**query_params)

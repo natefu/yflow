@@ -15,12 +15,12 @@ from utils import is_qualified, build_ticket_variables, build_node_variables
 
 class InstanceExecutor(SchedulerMixin):
     def __init__(self, ticket_id, node_id, instance_id):
-        self.instance = instance_operator.get_instance(pk=instance_id)
-        self.node = node_operator.get_node(pk=node_id)
-        self.ticket = ticket_operator.get_ticket(pk=ticket_id)
+        self.instance = instance_operator.get(pk=instance_id)
+        self.node = node_operator.get(pk=node_id)
+        self.ticket = ticket_operator.get(pk=ticket_id)
 
     def set_state(self, state):
-        instance_operator.update_instance(pk=self.instance.id, partial=True, state=state)
+        instance_operator.update(pk=self.instance.id, partial=True, state=state)
 
     def get_state(self):
         return self.instance.state
