@@ -1,4 +1,5 @@
 from .base import Base
+from .ticket import Ticket
 
 
 class Node(Base):
@@ -7,7 +8,10 @@ class Node(Base):
             updated=None, completed=None, **args
     ):
         self._id = id
-        self._ticket = ticket
+        if isinstance(ticket, int):
+            self._ticket = ticket
+        else:
+            self._ticket = Ticket(**ticket)
         self._identifier = identifier
         self._name = name
         self._state = state

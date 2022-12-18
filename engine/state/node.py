@@ -1,10 +1,9 @@
 from abc import abstractmethod, ABCMeta
 from constants import (
     BUILT_IN_TASK, HTTP_TASK, REVIEW_TASK, SUB_TICKET, READY, RUN, RUNNING, DENIED, FAILED, APPROVED, FINISHED,
-    PENDING, SKIPPED, FINISH
+    PENDING, SKIPPED, FINISH, FAIL, WAIT, EXCLUSIVE_GATEWAY,
 )
 from django.utils.timezone import now
-from engine.runtime import NodeRuntime
 from domain import Node, Instance, Ticket
 from storage.mysql import instance_operator, node_operator, ticket_operator
 
@@ -32,14 +31,31 @@ from storage.mysql import instance_operator, node_operator, ticket_operator
 '''
 
 
-class NodeState(metadata=ABCMeta):
+class NodeState:
 
     def __init__(self, runtime):
-        self.runtime: NodeRuntime = runtime
+        self.runtime = runtime
 
-    @abstractmethod
     def run(self):
-        raise NotImplementedError('NOT IMPLEMENT')
+        self.runtime.set_state(RUNNING)
+        state = self.runtime.executor.run()
+        if state == RUNNING:
+            return
+        elif state == FAILED:
+            self.runtime.executor.dispatch_node(
+                ticket_id=self.runtime.executor.ticket.id, node_id=self.runtime.executornode.id,
+                tokens=self.runtime.executor.tokens, command=FAIL
+            )
+        elif state == FINISHED:
+            self.runtime.executor.dispatch_node(
+                ticket_id=self.runtime.executor.ticket.id, node_id=self.runtime.executornode.id,
+                tokens=self.runtime.executor.tokens, command=FINISH
+            )
+        elif state == WAIT:
+            self.runtime.executor.dispatch_node(
+                ticket_id=self.runtime.executor.ticket.id, node_id=self.runtime.executornode.id,
+                tokens=self.runtime.executor.tokens, command=WAIT
+            )
 
     @abstractmethod
     def complete(self):
@@ -72,12 +88,7 @@ class NodeState(metadata=ABCMeta):
 
 class NodeReadyState(NodeState):
     def run(self):
-        node: Node = self.runtime.executor.node
-        _, tokens = self.runtime.executor.run()
-        node.variables['tokens'] = tokens
-        node_operator.update(pk=node.id, partial=True, variables=node.variables)
-        self.runtime.set_state(RUNNING)
-
+        super().run()
 
     def complete(self):
         raise NotImplementedError('NOT IMPLEMENT')
@@ -115,20 +126,44 @@ class NodeRunningState(NodeState):
         state = (APPROVED, DENIED) if node.element == REVIEW_TASK else (FINISHED, FAILED)
         if (total_instances - failed_instances) / total_instances >= condition:
             self.runtime.set_state(state[0])
+            for next_node in self.runtime.executor.get_next_nodes():
+                self.runtime.executor.dispatch_node(
+                    ticket_id=self.runtime.executor.ticket.id, node_id=next_node.id, tokens=self.runtime.executor.tokens,
+                    command=RUN
+                )
         else:
             self.runtime.set_state(state[1])
-        self.runtime.executor.dispatch_node(
-            ticket_id=self.runtime.executor.ticket.id, node_id=node.id, command=FINISH
-        )
+            if state == DENIED:
+                next_nodes = self.runtime.executor.get_next_nodes()
+                if next_nodes:
+                    for next_node in next_nodes:
+                        self.runtime.executor.dispatch_node(
+                            ticket_id=self.runtime.executor.ticket.id, node_id=next_node.id,
+                            tokens=self.runtime.executor.tokens, command=RUN
+                        )
+                    return
+            self.runtime.executor.dispatch_ticket(ticket_id=self.runtime.executor.ticket.id, command=FAIL)
 
     def run(self):
         raise NotImplementedError('NOT IMPLEMENT')
 
     def complete(self):
-        self._base_action()
+        if self.runtime.executor.node.element in [REVIEW_TASK, HTTP_TASK]:
+            self._base_action()
+        else:
+            self.runtime.set_state(FINISHED)
+            for node in self.runtime.executor.get_next_nodes():
+                self.runtime.executor.dispatch_node(
+                    ticket_id=self.runtime.executor.ticket.id, node_id=node.id, tokens=self.runtime.executor.tokens,
+                    command=RUN
+                )
 
     def fail(self):
-        self._base_action()
+        if self.runtime.executor.node.element in [REVIEW_TASK, HTTP_TASK]:
+            self._base_action()
+        else:
+            self.runtime.set_state(FAILED)
+            self.runtime.executor.dispatch_ticket(ticket_id=self.runtime.executor.ticket.id, command=FAIL)
 
     def wait(self):
         self.runtime.set_state(PENDING)
@@ -140,16 +175,10 @@ class NodeRunningState(NodeState):
         self._base_action()
 
     def skip(self):
-        self.runtime.set_state(SKIPPED)
-        self.runtime.executor.dispatch_node(
-            ticket_id=self.runtime.executor.ticket.id, node_id=self.runtime.executor.node.id, command=FINISH
-        )
+        raise NotImplementedError
 
     def retry(self):
-        self.runtime.set_state(READY)
-        self.runtime.executor.dispatch_node(
-            ticket_id=self.runtime.executor.ticket.id, node_id=self.runtime.executor.node.id, command=RUN
-        )
+        raise NotImplementedError
 
 
 class NodeSkippedState(NodeState):
@@ -157,10 +186,7 @@ class NodeSkippedState(NodeState):
         raise NotImplementedError('NOT IMPLEMENT')
 
     def complete(self):
-        for node in self.runtime.executor.get_next_nodes():
-            self.runtime.executor.dispatch_node(
-                ticket_id=self.runtime.executor.ticket.id, node_id=node.id, command=RUN
-            )
+        raise NotImplementedError('NOT IMPLEMENT')
 
     def fail(self):
         raise NotImplementedError('NOT IMPLEMENT')
@@ -183,10 +209,10 @@ class NodeSkippedState(NodeState):
 
 class NodeFailedState(NodeState):
     def run(self):
-        raise NotImplementedError('NOT IMPLEMENT')
+        super().run()
 
     def complete(self):
-        pass
+        raise NotImplementedError('NOT IMPLEMENT')
 
     def fail(self):
         raise NotImplementedError('NOT IMPLEMENT')
@@ -201,18 +227,27 @@ class NodeFailedState(NodeState):
         raise NotImplementedError('NOT IMPLEMENT')
 
     def skip(self):
-        raise NotImplementedError('NOT IMPLEMENT')
+        self.runtime.set_state(SKIPPED)
+        for node in self.runtime.executor.get_next_nodes():
+            self.runtime.executor.dispatch_node(
+                ticket_id=self.runtime.executor.ticket.id, node_id=node.id, tokens=self.runtime.executor.tokens,
+                command=RUN
+            )
 
     def retry(self):
-        raise NotImplementedError('NOT IMPLEMENT')
+        self.runtime.set_state(READY)
+        self.runtime.executor.dispatch_node(
+            ticket_id=self.runtime.executor.ticket.id, node_id=self.runtime.executor.node.id,
+            tokens=self.runtime.executor.tokens, command=RUN
+        )
 
 
 class NodeApprovedState(NodeState):
     def run(self):
-        raise NotImplementedError('NOT IMPLEMENT')
+        super().run()
 
     def complete(self):
-        pass
+        raise NotImplementedError('NOT IMPLEMENT')
 
     def fail(self):
         raise NotImplementedError('NOT IMPLEMENT')
@@ -235,28 +270,33 @@ class NodeApprovedState(NodeState):
 
 class NodeDeniedState(NodeState):
     def run(self):
-        pass
+        super().run()
 
     def complete(self):
-        pass
+        raise NotImplementedError('NOT IMPLEMENT')
 
     def fail(self):
-        pass
+        raise NotImplementedError('NOT IMPLEMENT')
 
     def wait(self):
-        pass
+        raise NotImplementedError('NOT IMPLEMENT')
 
     def approved(self):
-        pass
+        raise NotImplementedError('NOT IMPLEMENT')
 
     def deny(self):
-        pass
+        raise NotImplementedError('NOT IMPLEMENT')
 
     def skip(self):
-        pass
+        self.runtime.set_state(SKIPPED)
+        for node in self.runtime.executor.get_next_nodes():
+            self.runtime.executor.dispatch_node(
+                ticket_id=self.runtime.executor.ticket.id, node_id=node.id, tokens=self.runtime.executor.tokens,
+                command=RUN
+            )
 
     def retry(self):
-        pass
+        raise NotImplementedError('NOT IMPLEMENT')
 
 
 class NodePendingState(NodeState):
@@ -264,10 +304,18 @@ class NodePendingState(NodeState):
         raise NotImplementedError('NOT IMPLEMENT')
 
     def complete(self):
-        pass
+        self.runtime.set_state(FINISHED)
+        for next_node in self.runtime.executor.get_next_nodes:
+            self.runtime.executor.dispatch_node(
+                ticket_id=self.runtime.executor.ticket.id, node_id=next_node.id, tokens=self.runtime.executor.tokens,
+                command=RUN
+            )
 
     def fail(self):
-        raise NotImplementedError('NOT IMPLEMENT')
+        self.runtime.set_state(FAILED)
+        self.runtime.executor.dispatch_ticket(
+            ticket_id=self.runtime.executor.ticket.id, command=FAIL
+        )
 
     def wait(self):
         raise NotImplementedError('NOT IMPLEMENT')
@@ -287,10 +335,10 @@ class NodePendingState(NodeState):
 
 class NodeFinishedState(NodeState):
     def run(self):
-        raise NotImplementedError('NOT IMPLEMENT')
+        super().run()
 
     def complete(self):
-        pass
+        raise NotImplementedError('NOT IMPLEMENT')
 
     def fail(self):
         raise NotImplementedError('NOT IMPLEMENT')

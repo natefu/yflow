@@ -4,7 +4,7 @@ from .base import Base
 class Ticket(Base):
     def __init__(
             self, name, variables, context, scheme, state=None, process=None, created=None, updated=None, id=None,
-            completed=None, **args
+            completed=None, *args, **kwargs
     ):
         self._id = id
         self._name = name

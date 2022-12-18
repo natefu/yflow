@@ -23,7 +23,7 @@ class InstanceMysqlOperator(InstanceOperator):
     def update(self, pk: int, partial: bool, **updates) -> Instance:
         if 'state' in updates and updates['state'] in [FAILED, FINISHED, APPROVED, DENIED]:
             return self.base_operator.update_object(
-                pk=pk, partial=partial, times={'updated': now(), 'completed': now}, **updates
+                pk=pk, partial=partial, times={'updated': now(), 'completed': now()}, **updates
             )
         else:
             return self.base_operator.update_object(

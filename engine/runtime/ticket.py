@@ -1,5 +1,4 @@
 from constants import READY, RUNNING, FAILED, FINISHED, CLOSED, TERMINATED, REVOKED
-from domain import Ticket
 from engine.state import (
     TicketRunningState, TicketTerminatedState, TicketFinishedState, TicketClosedState, TicketRevokedState,
     TicketFailedState, TicketReadyState, TicketState,
@@ -20,8 +19,8 @@ STATE_MAPPING = {
 
 class TicketRuntime:
     def __init__(self, ticket_id):
-        self.state: TicketState = self.get_state()
         self.executor: TicketExecutor = TicketExecutor(ticket_id)
+        self.state: TicketState = self.get_state()
 
     def run(self):
         self.state.run()
@@ -34,9 +33,6 @@ class TicketRuntime:
 
     def terminate(self):
         self.state.terminate()
-
-    def retry(self):
-        self.state.retry()
 
     def revoke(self):
         self.state.revoke()

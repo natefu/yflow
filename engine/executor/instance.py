@@ -25,15 +25,11 @@ class InstanceExecutor(SchedulerMixin):
     def get_state(self):
         return self.instance.state
 
-    def run(self):
+    def run(self) -> [str, dict]:
         parameters: dict = build_node_variables(node=self.node, ticket=self.ticket)
         scheme: dict = self.instance.scheme
         executor = ActivityExecutor(parameters=parameters, scheme=scheme)
-        state = executor.run()
-        self.dispatch_instance(
-            ticket_id=self.ticket.id, node_id=self.node.id, instance_id=self.instance.id,
-            command=INSTANCE_STATE_ACTION_MAP[state]
-        )
+        return executor.run()
 
 
 class HttpExecutor:
@@ -49,33 +45,31 @@ class HttpExecutor:
             'max_retry_interval': config.get('max_retry_interval', HTTP_DEFAULT_MAX_RETRY_INTERVAL),
             'log_id': config.get('log_id', None)
         }
-
-    def loop(run):
+    """
+    def loop(execute):
         def wrapper(self, *args, **kwargs):
             if self.loop_task:
+                response = execute(self)
                 interval: int = self.loop_task.get(HTTP_INTERVAL, 3)
                 until_condition: str = self.loop_task.get(CONDITION)
                 if is_qualified(instance=self.parameters, evaluation=until_condition):
-                    return FINISHED
-                state, response = run(self)
-                if state == FAILED:
-                    return FAILED, {}
+                    return response
                 time.sleep(interval)
             else:
-                state, response = run(self)
-                return state, response
+                return execute(self)
         return wrapper
+    """
 
-    @loop
+    #@loop
     def run(self):
-        try:
-            client = HttpClient(**self.config)
-            response = client.request()
-            try:
-                return FINISHED
-            except json.decoder.JSONDecodeError:
-                return FINISHED
-        except Exception as e:
+        client = HttpClient(**self.config)
+        response = client.request()
+        """
+        todo: need to save response.body to context
+        """
+        if response.ok:
+            return FINISHED
+        else:
             return FAILED
 
 

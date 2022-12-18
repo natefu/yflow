@@ -1,16 +1,17 @@
+import uuid
 from abc import abstractmethod, ABCMeta
 from constants import (
     READY, RUNNING, RUN, START_EVENT, FINISHED, FAILED, TERMINATED, CLOSED, REVOKED, FAIL
 )
 from django.utils.timezone import now
-from engine.runtime import TicketRuntime
-from domain import Ticket, Node, NodeFlow
-from storage.mysql import node_operator, node_flow_operator
+from domain import Ticket, Node, NodeFlow, TicketToken
+from storage.mysql import node_operator, node_flow_operator, ticket_token_operator
 
 
-class TicketState(metadata=ABCMeta):
+class TicketState:
 
     def __init__(self, runtime):
+        from engine.runtime import TicketRuntime
         self.runtime: TicketRuntime = runtime
 
     @abstractmethod
@@ -60,11 +61,14 @@ class TicketState(metadata=ABCMeta):
 """
 
 
+# Before completing the ticket, needs to check if all tokens is used
 class TicketReadyState(TicketState):
     def run(self):
         ticket: Ticket = self.runtime.executor.ticket
         node_configs = ticket.scheme.get('nodes', [])
         flow_configs = ticket.scheme.get('flows', [])
+        token = TicketToken(None, self.executor.node.ticket, str(uuid.uuid1()), 0)
+        ticket_token_operator.create(token)
         nodes = []
         for node_config in node_configs:
             node = Node(
@@ -86,7 +90,7 @@ class TicketReadyState(TicketState):
         node_flow_operator.batch_create(node_flows=flows)
         self.runtime.set_state(RUNNING)
         node = node_operator.get_by_query(ticket=ticket.id, element=START_EVENT)
-        self.runtime.executor.dispatch_node(ticket_id=ticket.id, node_id=node.id, command=RUN)
+        self.runtime.executor.dispatch_node(ticket_id=ticket.id, node_id=node.id, tokens=[token.token], command=RUN)
 
     def complete(self):
         raise NotImplementedError

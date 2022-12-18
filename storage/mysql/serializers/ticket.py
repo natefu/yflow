@@ -14,7 +14,7 @@ class TicketSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TicketModel
-        fields = ('id', 'name', 'state', 'variables', 'context', 'scheme', 'process', 'created', 'updated', 'completed')
+        fields = ('id', 'name', 'state', 'variables', 'context', 'scheme', 'nodes', 'process', 'created', 'updated', 'completed')
 
     @staticmethod
     def to_model(ticket: Ticket):

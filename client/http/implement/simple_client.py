@@ -33,7 +33,6 @@ class HttpClient:
         while retry_attempt <= self.max_retry_attempts:
             try:
                 response = self.make_request()
-                print(response)
             except RequestException as e:
                 logger.debug(f'request fail {e}')
             else:
@@ -43,7 +42,7 @@ class HttpClient:
             if retry_attempt <= self.max_retry_attempts:
                 interval: int = self.get_retry_interval(retry_attempt=retry_attempt)
                 time.sleep(interval)
-        raise Exception(code=400, message='fail to make http requests')
+        return response
 
     def make_request(self) -> Response:
         if self.form_urlencoded:

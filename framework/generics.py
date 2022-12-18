@@ -1,4 +1,5 @@
 from rest_framework.generics import GenericAPIView
+from rest_framework.serializers import ModelSerializer
 from .mixins import CreateModelMixin, ListModelMixin, RetrieveModelMixin, UpdateModelMixin, DestroyModelMixin
 
 
@@ -9,11 +10,13 @@ class GenericBaseAPIView(GenericAPIView):
     query_params = {}
 
     def get_queryset(self):
+        print("***nice to see you****")
         return self.operator.query()
 
     def get_object(self):
         lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
         filter_kwargs = {self.lookup_field: self.kwargs[lookup_url_kwarg]}
+        print(filter_kwargs)
         if 'pk' in filter_kwargs:
             obj = self.operator.get(filter_kwargs.get('pk'))
         elif 'id' in filter_kwargs:
@@ -27,7 +30,7 @@ class GenericBaseAPIView(GenericAPIView):
 
 
 class CreateAPIView(CreateModelMixin,
-                    GenericAPIView):
+                    GenericBaseAPIView):
     """
     Concrete view for creating a model instance.
     """
@@ -36,7 +39,7 @@ class CreateAPIView(CreateModelMixin,
 
 
 class ListAPIView(ListModelMixin,
-                  GenericAPIView):
+                  GenericBaseAPIView):
     """
     Concrete view for listing a queryset.
     """
@@ -45,7 +48,7 @@ class ListAPIView(ListModelMixin,
 
 
 class RetrieveAPIView(RetrieveModelMixin,
-                      GenericAPIView):
+                      GenericBaseAPIView):
     """
     Concrete view for retrieving a model instance.
     """
@@ -54,7 +57,7 @@ class RetrieveAPIView(RetrieveModelMixin,
 
 
 class DestroyAPIView(DestroyModelMixin,
-                     GenericAPIView):
+                     GenericBaseAPIView):
     """
     Concrete view for deleting a model instance.
     """
@@ -63,7 +66,7 @@ class DestroyAPIView(DestroyModelMixin,
 
 
 class UpdateAPIView(UpdateModelMixin,
-                    GenericAPIView):
+                    GenericBaseAPIView):
     """
     Concrete view for updating a model instance.
     """
@@ -76,7 +79,7 @@ class UpdateAPIView(UpdateModelMixin,
 
 class ListCreateAPIView(ListModelMixin,
                         CreateModelMixin,
-                        GenericAPIView):
+                        GenericBaseAPIView):
     """
     Concrete view for listing a queryset or creating a model instance.
     """
@@ -89,7 +92,7 @@ class ListCreateAPIView(ListModelMixin,
 
 class RetrieveUpdateAPIView(RetrieveModelMixin,
                             UpdateModelMixin,
-                            GenericAPIView):
+                            GenericBaseAPIView):
     """
     Concrete view for retrieving, updating a model instance.
     """
@@ -105,7 +108,7 @@ class RetrieveUpdateAPIView(RetrieveModelMixin,
 
 class RetrieveDestroyAPIView(RetrieveModelMixin,
                              DestroyModelMixin,
-                             GenericAPIView):
+                             GenericBaseAPIView):
     """
     Concrete view for retrieving or deleting a model instance.
     """
@@ -119,7 +122,7 @@ class RetrieveDestroyAPIView(RetrieveModelMixin,
 class RetrieveUpdateDestroyAPIView(RetrieveModelMixin,
                                    UpdateModelMixin,
                                    DestroyModelMixin,
-                                   GenericAPIView):
+                                   GenericBaseAPIView):
     """
     Concrete view for retrieving, updating or deleting a model instance.
     """

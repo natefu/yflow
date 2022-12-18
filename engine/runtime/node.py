@@ -1,4 +1,6 @@
-from constants import READY, RUNNING, FAILED, FINISHED, APPROVED, DENIED, SKIPPED, PENDING
+from constants import (
+    READY, RUNNING, FAILED, FINISHED, APPROVED, DENIED, SKIPPED, PENDING, REVIEW_TASK, HTTP_TASK,
+)
 from engine.state import (
     NodeState, NodeFailedState, NodeDeniedState, NodeFinishedState, NodePendingState, NodeApprovedState,
     NodeRunningState, NodeSkippedState, NodeReadyState,
@@ -19,33 +21,48 @@ STATE_MAPPING = {
 
 
 class NodeRuntime:
-    def __init__(self, ticket_id: int, node_id: int, tokens: list[str]):
-        self.state = self.get_state()
+    def __init__(self, ticket_id: int, node_id: int, tokens: list[str] = None):
         self.executor: NodeExecutor = NodeExecutor(ticket_id, node_id, tokens)
+        self.state = self.get_state()
 
     def run(self):
         self.state.run()
 
     def approve(self):
-        self.state.approved()
+        if self.executor.node.element == REVIEW_TASK:
+            self.state.approved()
+        else:
+            raise TypeError
 
     def deny(self):
-        self.state.deny()
+        if self.executor.node.element == REVIEW_TASK:
+            self.state.deny()
+        else:
+            raise TypeError
 
     def finish(self):
         self.state.complete()
 
     def skip(self):
-        self.state.skip()
+        if self.executor.node.element in [REVIEW_TASK, HTTP_TASK]:
+            self.state.skip()
+        else:
+            raise TypeError
 
     def fail(self):
         self.state.fail()
 
     def wait(self):
-        self.state.wait()
+        if self.executor.node.element == HTTP_TASK:
+            self.state.wait()
+        else:
+            raise TypeError
 
     def retry(self):
-        self.state.retry()
+        if self.executor.node.element == HTTP_TASK:
+            self.state.retry()
+        else:
+            raise TypeError
 
     def get_state(self) -> NodeState:
         if self.executor.ticket.state in STATE_MAPPING:

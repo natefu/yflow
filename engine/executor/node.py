@@ -15,10 +15,13 @@ from utils.engine import is_qualified
 
 class NodeExecutor(SchedulerMixin):
 
-    def __init__(self, ticket_id: int, node_id: int, tokens: list[str]):
+    def __init__(self, ticket_id: int, node_id: int, tokens: list[str] = None):
         self.node = node_operator.get(pk=node_id)
         self.ticket = ticket_operator.get(pk=ticket_id)
-        self.tokens = tokens
+        if tokens:
+            self.update_tokens(tokens)
+        else:
+            self.tokens = self.node.created.get('tokens')
 
     def set_state(self, state):
         node_operator.update(pk=self.node.id, partial=True, state=state)
@@ -26,8 +29,15 @@ class NodeExecutor(SchedulerMixin):
     def get_state(self) -> str:
         return self.node.state
 
+    def update_tokens(self, tokens: list[str]):
+        self.tokens = tokens
+        self.node.context['tokens'] = tokens
+        node_operator.update(pk=self.node.id, partial=True, context=self.node.context)
+
     def run(self) -> [str, list[str]]:
-        return self.get_executor().run()
+        state, token = self.get_executor().run()
+        self.update_tokens(tokens=token)
+        return state
 
     def get_next_nodes(self) -> list[int]:
         return self.get_executor().get_next_nodes()
@@ -188,6 +198,25 @@ class StartNodeExecutor(BaseNodeExecutor):
         return nodes
 
 
+class EndNodeExecutor(BaseNodeExecutor):
+    def __init__(self, executor: NodeExecutor):
+        super().__init__(executor)
+
+    def run(self):
+        if len(self.executor.tokens) == 1:
+            ticket_token = ticket_token_operator.get_by_query(
+                ticket_id=self.executor.ticket.id, token=self.executor.tokens[0]
+            )
+            ticket_token.count -= 1
+            ticket_token_operator.update(pk=ticket_token.id, partial=True, count=ticket_token.count)
+            if ticket_token.count == 0:
+                return FINISHED, []
+            else:
+                return FAILED, [ticket_token.token]
+        else:
+            return FAILED, self.executor.tokens
+
+
 class ParallelGatewayNodeExecutor(BaseNodeExecutor):
     def __init__(self, executor: NodeExecutor):
         super().__init__(executor)
@@ -200,13 +229,12 @@ class ParallelGatewayNodeExecutor(BaseNodeExecutor):
 
     def get_next_nodes(self):
         nodes = super().get_next_nodes()
-        count = 0
-        for _ in nodes:
-            count += 1
         token = ticket_token_operator.get_by_query(
             ticket_id=self.executor.node.ticket, token=self.executor.tokens[-1]
         )
-        ticket_token_operator.update(pk=token.id, partial=True, count=count)
+        for _ in nodes:
+            token.count += 1
+        ticket_token_operator.update(pk=token.id, partial=True, count=token.count)
         return nodes,
 
 
@@ -240,12 +268,11 @@ class InclusiveDivergingGatewayNodeExecutor(BaseNodeExecutor):
         token = ticket_token_operator.get_by_query(
             ticket_id=self.executor.node.ticket, token=self.executor.tokens[-1]
         )
-        count = 0
         for flow in flows:
             if is_qualified(self.executor.node, flow.condition):
-                count += 1
+                token.count += 1
                 next_nodes.append(flow.target)
-        ticket_token_operator.update(pk=token.id, partial=True, count=count)
+        ticket_token_operator.update(pk=token.id, partial=True, count=token.count)
         return next_nodes
 
 

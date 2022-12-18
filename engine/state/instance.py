@@ -1,12 +1,12 @@
 from abc import abstractmethod, ABCMeta
 from constants import RUNNING, FAILED, FINISHED, FAIL, FINISH, APPROVED, APPROVE, DENIED, DENY
 from domain import Instance, Node, Ticket
-from engine.runtime import InstanceRuntime
 
 
-class InstanceState(metaclass=ABCMeta):
+class InstanceState:
 
     def __init__(self, runtime):
+        from engine.runtime import InstanceRuntime
         self.runtime: InstanceRuntime = runtime
 
     @abstractmethod
@@ -37,7 +37,17 @@ class InstanceReadyState(InstanceState):
         if ticket.state != RUNNING or node.state != RUNNING:
             return
         self.runtime.set_state(RUNNING)
-        self.runtime.executor.run()
+        state = self.runtime.executor.run()
+        if state == FAILED:
+            self.runtime.executor.dispatch_instance(
+                ticket_id=self.runtime.executor.ticket.id, node_id=self.runtime.executor.node.id,
+                instance_id=self.runtime.executor.instance.id, command=FAIL
+            )
+        elif state == FINISHED:
+            self.runtime.executor.dispatch_instance(
+                ticket_id=self.runtime.executor.ticket.id, node_id=self.runtime.executor.node.id,
+                instance_id=self.runtime.executor.instance.id, command=FINISH
+            )
 
     def complete(self):
         raise NotImplementedError
@@ -59,28 +69,28 @@ class InstanceRunningState(InstanceState):
     def complete(self):
         self.runtime.set_state(FINISHED)
         self.runtime.executor.dispatch_node(
-            ticket_id=self.runtime.executor.ticket.id, node_id=self.runtime.executor.node.id,
+            ticket_id=self.runtime.executor.ticket.id, node_id=self.runtime.executor.node.id, tokens=None,
             command=FINISH
         )
 
     def fail(self):
         self.runtime.set_state(FAILED)
         self.runtime.executor.dispatch_node(
-            ticket_id=self.runtime.executor.ticket.id, node_id=self.runtime.executor.node.id,
+            ticket_id=self.runtime.executor.ticket.id, node_id=self.runtime.executor.node.id, tokens=None,
             command=FAIL
         )
 
     def approve(self):
         self.runtime.set_state(APPROVED)
         self.runtime.executor.dispatch_node(
-            ticket_id=self.runtime.executor.ticket.id, node_id=self.runtime.executor.node.id,
+            ticket_id=self.runtime.executor.ticket.id, node_id=self.runtime.executor.node.id, tokens=None,
             command=APPROVE
         )
 
     def deny(self):
         self.runtime.set_state(DENIED)
         self.runtime.executor.dispatch_node(
-            ticket_id=self.runtime.executor.ticket.id, node_id=self.runtime.executor.node.id,
+            ticket_id=self.runtime.executor.ticket.id, node_id=self.runtime.executor.node.id, tokens=None,
             command=DENY
         )
 

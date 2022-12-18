@@ -37,7 +37,9 @@ class BaseOperatorMysql:
 
     def get_object(self, pk: int):
         instance = self.model.objects.get(pk=pk)
+        print(instance, type(instance))
         serializer = self.serializer(instance=instance)
+        print(serializer.data)
         return self.domain(**serializer.data)
 
     def get_objects_by_query(self, **query_params):

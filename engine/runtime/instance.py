@@ -18,8 +18,8 @@ STATE_MAPPING = {
 
 class InstanceRuntime:
     def __init__(self, ticket_id, node_id, instance_id):
-        self.state = self.get_state()
         self.executor = InstanceExecutor(ticket_id, node_id, instance_id)
+        self.state = self.get_state()
 
     def run(self):
         self.state.run()

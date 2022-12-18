@@ -1,10 +1,14 @@
 from .base import Base
+from .node import Node
 
 
 class Instance(Base):
     def __init__(self, id, node, state, scheme, created=None, updated=None, completed=None, **args):
         self._id = id
-        self._node = node
+        if isinstance(node, int):
+            self._node = node
+        else:
+            self._node = Node(**node)
         self._state = state
         self._scheme = scheme
         self._created = created
