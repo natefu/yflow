@@ -19,11 +19,9 @@ class BaseOperatorMysql:
             serializer.save(**times)
         return self.domain(**serializer.data)
 
-    def batch_create_objects(self, domains: list[Base]):
-        batch_objects = []
+    def batch_create_objects(self, domains: list[Base], times=None):
         for domain in domains:
-            batch_objects.append(self.model(**domain.to_dict()))
-        self.model.bulk_create(batch_objects)
+            self.create_object(domain, times=times)
 
     def update_object(self, pk: int, partial=False, times=None, **updates):
         instance = self.model.objects.get(pk=pk)
@@ -37,9 +35,7 @@ class BaseOperatorMysql:
 
     def get_object(self, pk: int):
         instance = self.model.objects.get(pk=pk)
-        print(instance, type(instance))
         serializer = self.serializer(instance=instance)
-        print(serializer.data)
         return self.domain(**serializer.data)
 
     def get_objects_by_query(self, **query_params):

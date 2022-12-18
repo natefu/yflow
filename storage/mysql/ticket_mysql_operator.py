@@ -21,7 +21,7 @@ class TicketMysqlOperator(TicketOperator):
     def update(self, pk: int, partial: bool, **updates) -> Ticket:
         if 'state' in updates and updates['state'] in [FAILED, FINISHED, TERMINATED, REVOKED, CLOSED]:
             return self.base_operator.update_object(
-                pk=pk, partial=partial, times={'updated': now(), 'completed': now}, **updates
+                pk=pk, partial=partial, times={'updated': now(), 'completed': now()}, **updates
             )
         else:
             return self.base_operator.update_object(

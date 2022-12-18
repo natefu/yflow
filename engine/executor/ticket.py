@@ -8,7 +8,7 @@ class TicketExecutor(SchedulerMixin):
         self.ticket = ticket_operator.get(pk=ticket_id)
 
     def set_state(self, state):
-        ticket_operator.update(pk=self.ticket.id, partial=True, state=state)
+        self.ticket = ticket_operator.update(pk=self.ticket.id, partial=True, state=state)
 
     def get_state(self):
         return self.ticket.state

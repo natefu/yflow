@@ -10,13 +10,11 @@ class GenericBaseAPIView(GenericAPIView):
     query_params = {}
 
     def get_queryset(self):
-        print("***nice to see you****")
         return self.operator.query()
 
     def get_object(self):
         lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
         filter_kwargs = {self.lookup_field: self.kwargs[lookup_url_kwarg]}
-        print(filter_kwargs)
         if 'pk' in filter_kwargs:
             obj = self.operator.get(filter_kwargs.get('pk'))
         elif 'id' in filter_kwargs:

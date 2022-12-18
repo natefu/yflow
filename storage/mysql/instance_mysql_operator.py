@@ -4,7 +4,7 @@ from domain import Instance
 from storage.instance_performer import InstanceOperator
 from .base_operator_mysql import BaseOperatorMysql
 from .models import Instance as InstanceModel
-from .serializers import InstanceSerializer
+from .serializers import InstanceSerializer, InstanceCreateSerializer
 
 
 class InstanceMysqlOperator(InstanceOperator):
@@ -15,9 +15,11 @@ class InstanceMysqlOperator(InstanceOperator):
         )
 
     def create(self, instance: Instance) -> Instance:
+        self.base_operator.serializer = InstanceCreateSerializer
         return self.base_operator.create_object(domain=instance, times={'created': now(), 'updated': now()})
 
     def batch_create(self, instances: list[Instance]):
+        self.base_operator.serializer = InstanceCreateSerializer
         return self.base_operator.batch_create_objects(domains=instances)
 
     def update(self, pk: int, partial: bool, **updates) -> Instance:

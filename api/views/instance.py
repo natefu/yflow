@@ -18,7 +18,6 @@ class InstanceUpdateView(generics.UpdateAPIView):
         if not action:
             return Response(status=status.HTTP_400_BAD_REQUEST)
         instance: Instance = self.get_object()
-        print("{}, {}, {}".format(instance.node.ticket, instance.node.id, instance.id))
         instance_scheduler.apply_async(
             kwargs={'ticket_id': instance.node.ticket, 'node_id': instance.node.id, 'instance_id': instance.id, 'instance_command': action}
         )

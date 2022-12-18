@@ -65,8 +65,8 @@ class NodeRuntime:
             raise TypeError
 
     def get_state(self) -> NodeState:
-        if self.executor.ticket.state in STATE_MAPPING:
-            return STATE_MAPPING[self.executor.ticket.state](self)
+        if self.executor.node.state in STATE_MAPPING:
+            return STATE_MAPPING[self.executor.node.state](self)
 
     def set_state(self, state):
         self.executor.set_state(state)

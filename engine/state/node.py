@@ -1,7 +1,7 @@
 from abc import abstractmethod, ABCMeta
 from constants import (
     BUILT_IN_TASK, HTTP_TASK, REVIEW_TASK, SUB_TICKET, READY, RUN, RUNNING, DENIED, FAILED, APPROVED, FINISHED,
-    PENDING, SKIPPED, FINISH, FAIL, WAIT, EXCLUSIVE_GATEWAY,
+    PENDING, SKIPPED, FINISH, FAIL, WAIT, EXCLUSIVE_GATEWAY, END_EVENT,
 )
 from django.utils.timezone import now
 from domain import Node, Instance, Ticket
@@ -43,12 +43,12 @@ class NodeState:
             return
         elif state == FAILED:
             self.runtime.executor.dispatch_node(
-                ticket_id=self.runtime.executor.ticket.id, node_id=self.runtime.executornode.id,
+                ticket_id=self.runtime.executor.ticket.id, node_id=self.runtime.executor.node.id,
                 tokens=self.runtime.executor.tokens, command=FAIL
             )
         elif state == FINISHED:
             self.runtime.executor.dispatch_node(
-                ticket_id=self.runtime.executor.ticket.id, node_id=self.runtime.executornode.id,
+                ticket_id=self.runtime.executor.ticket.id, node_id=self.runtime.executor.node.id,
                 tokens=self.runtime.executor.tokens, command=FINISH
             )
         elif state == WAIT:
@@ -122,13 +122,13 @@ class NodeRunningState(NodeState):
         if running_instances > 0:
             return
         failed_instances = len([instance for instance in instances if instance.state in [FAILED, DENIED]])
-        condition = self.runtime.executor.node.condition
+        condition = self.runtime.executor.node.condition or 1
         state = (APPROVED, DENIED) if node.element == REVIEW_TASK else (FINISHED, FAILED)
         if (total_instances - failed_instances) / total_instances >= condition:
             self.runtime.set_state(state[0])
-            for next_node in self.runtime.executor.get_next_nodes():
+            for node in self.runtime.executor.get_next_nodes():
                 self.runtime.executor.dispatch_node(
-                    ticket_id=self.runtime.executor.ticket.id, node_id=next_node.id, tokens=self.runtime.executor.tokens,
+                    ticket_id=self.runtime.executor.ticket.id, node_id=node, tokens=self.runtime.executor.tokens,
                     command=RUN
                 )
         else:
@@ -136,9 +136,9 @@ class NodeRunningState(NodeState):
             if state == DENIED:
                 next_nodes = self.runtime.executor.get_next_nodes()
                 if next_nodes:
-                    for next_node in next_nodes:
+                    for node in next_nodes:
                         self.runtime.executor.dispatch_node(
-                            ticket_id=self.runtime.executor.ticket.id, node_id=next_node.id,
+                            ticket_id=self.runtime.executor.ticket.id, node_id=node,
                             tokens=self.runtime.executor.tokens, command=RUN
                         )
                     return
@@ -152,11 +152,14 @@ class NodeRunningState(NodeState):
             self._base_action()
         else:
             self.runtime.set_state(FINISHED)
-            for node in self.runtime.executor.get_next_nodes():
-                self.runtime.executor.dispatch_node(
-                    ticket_id=self.runtime.executor.ticket.id, node_id=node.id, tokens=self.runtime.executor.tokens,
-                    command=RUN
-                )
+            if self.runtime.executor.node.element == END_EVENT:
+                self.runtime.executor.dispatch_ticket(ticket_id=self.runtime.executor.ticket.id, command=FINISH)
+            else:
+                for node in self.runtime.executor.get_next_nodes():
+                    self.runtime.executor.dispatch_node(
+                        ticket_id=self.runtime.executor.ticket.id, node_id=node, tokens=self.runtime.executor.tokens,
+                        command=RUN
+                    )
 
     def fail(self):
         if self.runtime.executor.node.element in [REVIEW_TASK, HTTP_TASK]:
@@ -230,7 +233,7 @@ class NodeFailedState(NodeState):
         self.runtime.set_state(SKIPPED)
         for node in self.runtime.executor.get_next_nodes():
             self.runtime.executor.dispatch_node(
-                ticket_id=self.runtime.executor.ticket.id, node_id=node.id, tokens=self.runtime.executor.tokens,
+                ticket_id=self.runtime.executor.ticket.id, node_id=node, tokens=self.runtime.executor.tokens,
                 command=RUN
             )
 
@@ -291,7 +294,7 @@ class NodeDeniedState(NodeState):
         self.runtime.set_state(SKIPPED)
         for node in self.runtime.executor.get_next_nodes():
             self.runtime.executor.dispatch_node(
-                ticket_id=self.runtime.executor.ticket.id, node_id=node.id, tokens=self.runtime.executor.tokens,
+                ticket_id=self.runtime.executor.ticket.id, node_id=node, tokens=self.runtime.executor.tokens,
                 command=RUN
             )
 
@@ -305,9 +308,9 @@ class NodePendingState(NodeState):
 
     def complete(self):
         self.runtime.set_state(FINISHED)
-        for next_node in self.runtime.executor.get_next_nodes:
+        for node in self.runtime.executor.get_next_nodes:
             self.runtime.executor.dispatch_node(
-                ticket_id=self.runtime.executor.ticket.id, node_id=next_node.id, tokens=self.runtime.executor.tokens,
+                ticket_id=self.runtime.executor.ticket.id, node_id=node, tokens=self.runtime.executor.tokens,
                 command=RUN
             )
 

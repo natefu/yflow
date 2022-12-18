@@ -3,12 +3,12 @@ from .node import Node
 
 
 class Instance(Base):
-    def __init__(self, id, node, state, scheme, created=None, updated=None, completed=None, **args):
+    def __init__(self, node, state, scheme, id=None, created=None, updated=None, completed=None, **args):
         self._id = id
-        if isinstance(node, int):
-            self._node = node
-        else:
+        if isinstance(node, dict):
             self._node = Node(**node)
+        else:
+            self._node = node
         self._state = state
         self._scheme = scheme
         self._created = created

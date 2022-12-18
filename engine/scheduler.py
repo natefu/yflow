@@ -73,7 +73,6 @@ class InstanceScheduler(Scheduler):
 
     def run(self, ticket_id: int, node_id: int, instance_id: int, instance_command: str):
         from engine.runtime import InstanceRuntime
-        print("{}, {}, {}".format(ticket_id, node_id, instance_id))
         runtime = InstanceRuntime(ticket_id=ticket_id, node_id=node_id, instance_id=instance_id)
         try:
             handler = getattr(runtime, instance_command)

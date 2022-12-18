@@ -26,8 +26,6 @@ class NodeSerializer(serializers.ModelSerializer):
 
 
 class NodeFlowSerializer(serializers.ModelSerializer):
-    source = NodeSerializer(read_only=True)
-    target = NodeSerializer(read_only=True)
 
     class Meta:
         model = NodeFlowModel

@@ -41,20 +41,34 @@ class TicketState:
 
 """
 {
-    'nodes': [
+    "nodes": [
         {
-            'identifier': 'start_event',
-            'name': 'start_event',
-            'element': 'startEvent'
+            "identifier": "start_event",
+            "name": "start_event",
+            "element": "startEvent"
         },
         {
-            'identifier': 'http_event',
-            'name': 'http_event',
-            'element': 'http',
-            'scheme': {
-                'partitions': [1, 2, 4, 5, 6]
-                ''
+            "identifier": "review_task",
+            "name": "review_task",
+            "element": "review",
+            "scheme": {
+                "partitions": [1]
             }
+        },
+        {
+            "identifier": "end_event",
+            "name": "end_event",
+            "element": "endEvent"
+        }
+    ],
+    "flows": [
+        {
+            "source": "start_event",
+            "target": "review_task"
+        },
+        {
+            "source": "review_task",
+            "target": "end_event"
         }
     ]
 }
@@ -67,7 +81,7 @@ class TicketReadyState(TicketState):
         ticket: Ticket = self.runtime.executor.ticket
         node_configs = ticket.scheme.get('nodes', [])
         flow_configs = ticket.scheme.get('flows', [])
-        token = TicketToken(None, self.executor.node.ticket, str(uuid.uuid1()), 0)
+        token = TicketToken(None, self.runtime.executor.ticket.id, str(uuid.uuid1()), 1)
         ticket_token_operator.create(token)
         nodes = []
         for node_config in node_configs:
@@ -78,13 +92,13 @@ class TicketReadyState(TicketState):
                 updated=now()
             )
             nodes.append(node)
-        node_operator.batch_create(nodes=nodes)
+        node_operator.batch_create(nodes=nodes, times={'created': now(), 'updated': now()})
         flows = []
         for flow_config in flow_configs:
             flow = NodeFlow(
-                source=node_operator.get_by_query(ticket=ticket.id, identifier=flow_config.get('source')),
-                target=node_operator.get_by_query(ticket=ticket.id, identifier=flow_config.get('target')),
-                condition=flow_config.get('condition'), name=flow_config.get('name')
+                source=node_operator.get_by_query(ticket_id=ticket.id, identifier=flow_config.get('source')).id,
+                target=node_operator.get_by_query(ticket_id=ticket.id, identifier=flow_config.get('target')).id,
+                condition=flow_config.get('condition', ''), name=flow_config.get('name', '')
             )
             flows.append(flow)
         node_flow_operator.batch_create(node_flows=flows)

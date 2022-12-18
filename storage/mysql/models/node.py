@@ -20,7 +20,7 @@ class Node(models.Model):
     variables = models.JSONField(blank=True, null=True, verbose_name=_('I18N_MSG_MODEL_VARIABLES'))
     context = models.JSONField(blank=True, null=True, verbose_name=_('I18N_MSG_MODEL_CONTEXT'))
     scheme = models.JSONField(blank=True, null=True, verbose_name=_('I18N_MSG_MODEL_SCHEME'))
-    condition = models.CharField(max_length=128, blank=False, null=False, verbose_name=_('I18N_MSG_MODEL_CONDITION'))
+    condition = models.CharField(max_length=128, blank=True, null=True, verbose_name=_('I18N_MSG_MODEL_CONDITION'))
     created = models.DateTimeField(auto_now_add=True, verbose_name=_('I18N_MSG_MODEL_CREATED'))
     updated = models.DateTimeField(auto_now=True, verbose_name=_('I18N_MSG_MODEL_UPDATED'))
     completed = models.DateTimeField(blank=True, null=True, verbose_name=_('I18N_MSG_MODEL_COMPLETED'))
@@ -44,7 +44,7 @@ class NodeFlow(models.Model):
         Node, on_delete=models.PROTECT, related_name='target', verbose_name=_('I18N_MSG_MODEL_TARGET')
     )
     condition = models.CharField(blank=True, null=True, max_length=128, verbose_name=_('I18N_MSG_MODEL_CONDITION'))
-    name = models.CharField(max_length=128, verbose_name=_('I18N_MSG_MODEL_NAME'))
+    name = models.CharField(max_length=128, blank=True, null=True, verbose_name=_('I18N_MSG_MODEL_NAME'))
 
     class Meta:
         verbose_name = _('I18N_MSG_MODEL_FLOW')

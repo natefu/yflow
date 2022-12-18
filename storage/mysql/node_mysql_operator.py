@@ -18,13 +18,13 @@ class NodeMysqlOperator(NodeOperator):
     def create(self, node: Node) -> Node:
         return self.base_operator.create_object(domain=node, times={'created': now(), 'updated': now()})
 
-    def batch_create(self, nodes: list[Node]) -> None:
-        self.base_operator.batch_create_objects(domains=nodes)
+    def batch_create(self, nodes: list[Node], times: {} = None) -> None:
+        self.base_operator.batch_create_objects(domains=nodes, times=times)
 
     def update(self, pk: int, partial: bool, **updates) -> Node:
         if 'state' in updates and updates['state'] in [APPROVED, DENIED, FAILED, FINISHED, SKIPPED]:
             return self.base_operator.update_object(
-                pk=pk, partial=partial, times={'updated': now(), 'completed': now}, **updates
+                pk=pk, partial=partial, times={'updated': now(), 'completed': now()}, **updates
             )
         else:
             return self.base_operator.update_object(

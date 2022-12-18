@@ -2,7 +2,7 @@ import uuid
 from constants import (
     FAILED, DENIED, APPROVED, FINISHED, SKIPPED, EXCLUSIVE_GATEWAY, START_EVENT, HTTP_TASK, REVIEW_TASK, SUB_TICKET,
     INCLUSIVE_DIVERGING_GATEWAY, PARALLEL_DIVERGING_GATEWAY, INCLUSIVE_CONVERGING_GATEWAY, RUNNING, READY, RUN,
-    PARALLEL_CONVERGING_OR_GATEWAY, PARALLEL_CONVERGING_AND_GATEWAY,
+    PARALLEL_CONVERGING_OR_GATEWAY, PARALLEL_CONVERGING_AND_GATEWAY, END_EVENT,
 )
 from django.utils.timezone import now
 from domain import Node, NodeFlow, TicketToken, Instance
@@ -21,10 +21,10 @@ class NodeExecutor(SchedulerMixin):
         if tokens:
             self.update_tokens(tokens)
         else:
-            self.tokens = self.node.created.get('tokens')
+            self.tokens = self.node.context.get('tokens')
 
     def set_state(self, state):
-        node_operator.update(pk=self.node.id, partial=True, state=state)
+        self.node = node_operator.update(pk=self.node.id, partial=True, state=state)
 
     def get_state(self) -> str:
         return self.node.state
@@ -34,7 +34,7 @@ class NodeExecutor(SchedulerMixin):
         self.node.context['tokens'] = tokens
         node_operator.update(pk=self.node.id, partial=True, context=self.node.context)
 
-    def run(self) -> [str, list[str]]:
+    def run(self) -> str:
         state, token = self.get_executor().run()
         self.update_tokens(tokens=token)
         return state
@@ -67,6 +67,8 @@ class NodeExecutor(SchedulerMixin):
     def get_executor(self):
         if self.node.element == START_EVENT:
             return StartNodeExecutor(self)
+        elif self.node.element == END_EVENT:
+            return EndNodeExecutor(self)
         elif self.node.element == HTTP_TASK:
             return HttpNodeExecutor(self)
         elif self.node.element == REVIEW_TASK:
@@ -149,7 +151,7 @@ class ReviewNodeExecutor(BaseNodeExecutor):
                 'config': instance_scheme.get('config', [])
             }
             instances.append(
-                Instance(id=None, node=self.executor.node.id, state=READY, scheme=scheme, created=now(), updated=now())
+                Instance(node=self.executor.node.id, state=READY, scheme=scheme, created=now(), updated=now())
             )
         instance_operator.batch_create(instances=instances)
         instances = instance_operator.query(node=self.executor.node.id)
@@ -160,14 +162,15 @@ class ReviewNodeExecutor(BaseNodeExecutor):
         return RUNNING, self.executor.tokens
 
     def get_next_nodes(self):
-        nodes = super().get_next_nodes()
-        if len(nodes) != 1:
+        node_ids = super().get_next_nodes()
+        if len(node_ids) != 1:
             return
-        node = nodes[0]
+        node_id = node_ids[0]
+        node = node_operator.get(pk=node_id)
         if node.element == EXCLUSIVE_GATEWAY:
-            return nodes
-        elif node.state == APPROVED:
-            return nodes
+            return node_ids
+        elif self.executor.node.state == APPROVED:
+            return node_ids
 
 
 class SubTicketNodeExecutor(BaseNodeExecutor):
@@ -216,6 +219,9 @@ class EndNodeExecutor(BaseNodeExecutor):
         else:
             return FAILED, self.executor.tokens
 
+    def get_next_nodes(self):
+        return []
+
 
 class ParallelGatewayNodeExecutor(BaseNodeExecutor):
     def __init__(self, executor: NodeExecutor):
@@ -235,7 +241,7 @@ class ParallelGatewayNodeExecutor(BaseNodeExecutor):
         for _ in nodes:
             token.count += 1
         ticket_token_operator.update(pk=token.id, partial=True, count=token.count)
-        return nodes,
+        return nodes
 
 
 class ExclusiveGatewayNodeExecutor(BaseNodeExecutor):

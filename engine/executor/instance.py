@@ -20,7 +20,7 @@ class InstanceExecutor(SchedulerMixin):
         self.ticket = ticket_operator.get(pk=ticket_id)
 
     def set_state(self, state):
-        instance_operator.update(pk=self.instance.id, partial=True, state=state)
+        self.instance = instance_operator.update(pk=self.instance.id, partial=True, state=state)
 
     def get_state(self):
         return self.instance.state

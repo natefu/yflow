@@ -4,14 +4,14 @@ from .ticket import Ticket
 
 class Node(Base):
     def __init__(
-            self, id, ticket, identifier, name, state, element, variables, context, scheme, condition, created=None,
-            updated=None, completed=None, **args
+            self, ticket, identifier, name, state, element, variables, context, scheme, condition, created=None,
+            updated=None, completed=None, id=None, **args
     ):
         self._id = id
-        if isinstance(ticket, int):
-            self._ticket = ticket
-        else:
+        if isinstance(ticket, dict):
             self._ticket = Ticket(**ticket)
+        else:
+            self._ticket = ticket
         self._identifier = identifier
         self._name = name
         self._state = state
@@ -133,7 +133,7 @@ class Node(Base):
 
 
 class NodeFlow(Base):
-    def __init__(self, id, source, target, condition, name, **args):
+    def __init__(self, source, target, condition, name, id=None, **args):
         self._id = id
         self._source = source
         self._target = target
