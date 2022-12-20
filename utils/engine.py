@@ -21,33 +21,38 @@ def get_context_dict(prefix: str, context: list[dict]) -> dict:
     return {}
 
 
-def build_node_variables(node: Node, ticket: Ticket) -> dict:
+def build_node_variables(node: Node) -> dict:
     variables: dict = {
         f'{node.name}_{VAR_NODE_ID}': node.id,
         f'{node.name}_{VAR_NODE_STATE}': node.state
     }
     variables.update(get_variable_dict(prefix=f'{node.name}'+'_{}', variables=node.variables))
     variables.update(get_context_dict(prefix=f'{node.name}' + '_{}', context=node.context))
-    variables.update(build_ticket_variables(ticket))
     return variables
 
 
 def build_ticket_variables(ticket: Ticket) -> dict:
     variables: dict = {
-        VAR_TICKET_PROCESS: ticket.process,
+        #VAR_TICKET_PROCESS: ticket.process,
         VAR_TICKET_ID: ticket.id,
         VAR_TICKET_STATE: ticket.state
     }
     variables.update(get_variable_dict(prefix='{}', variables=ticket.variables))
+    from storage.mysql import node_operator
+    nodes = node_operator.query(ticket_id=ticket.id)
+    for node in nodes:
+        variables.update(build_node_variables(node))
     return variables
 
 
 def get_variable_context(instance: Union[Ticket, Node]) -> dict:
+    from storage.mysql import ticket_operator
     variable_context = {}
     if isinstance(instance, Ticket):
         variable_context = build_ticket_variables(ticket=instance)
     elif isinstance(instance, Node):
-        variable_context = build_ticket_variables(ticket=instance.ticket)
+        ticket = ticket_operator.get(instance.ticket)
+        variable_context = build_ticket_variables(ticket=ticket)
     return variable_context
 
 
@@ -84,7 +89,7 @@ def substitute(
             return evaluation
         return eval(evaluation)
     except:
-        raise
+        return False
 
 
 def is_qualified(instance: Union[Ticket, Node], evaluation: str) -> bool:

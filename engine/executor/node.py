@@ -255,7 +255,8 @@ class ExclusiveGatewayNodeExecutor(BaseNodeExecutor):
         flows: list[NodeFlow] = node_flow_operator.query(source_id=self.executor.node.id)
         for flow in flows:
             if is_qualified(self.executor.node, flow.condition):
-                return flow
+                return [flow.target]
+        return []
 
 
 class InclusiveDivergingGatewayNodeExecutor(BaseNodeExecutor):

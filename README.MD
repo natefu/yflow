@@ -17,6 +17,11 @@
             }
         },
         {
+            "identifier": "exclusiveGateway",
+            "name": "exclusiveGateway",
+            "element": "exclusiveGateway"
+        },
+        {
             "identifier": "end_event",
             "name": "end_event",
             "element": "endEvent"
@@ -29,7 +34,12 @@
         },
         {
             "source": "review_task",
-            "target": "end_event"
+            "target": "exclusiveGateway"
+        },
+        {
+            "source": "exclusiveGateway",
+            "target": "end_event",
+            "condition": "${exclusiveGateway_state} == approved"
         }
     ]
 }

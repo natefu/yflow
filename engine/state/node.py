@@ -124,8 +124,11 @@ class NodeRunningState(NodeState):
         failed_instances = len([instance for instance in instances if instance.state in [FAILED, DENIED]])
         condition = self.runtime.executor.node.condition or 1
         state = (APPROVED, DENIED) if node.element == REVIEW_TASK else (FINISHED, FAILED)
+        context = self.runtime.executor.node.context or {}
         if (total_instances - failed_instances) / total_instances >= condition:
             self.runtime.set_state(state[0])
+            context[f'{self.runtime.executor.node.name}_state'] = state[0]
+            node_operator.update(pk=self.runtime.executor.node.id, partial=True, context=context)
             for node in self.runtime.executor.get_next_nodes():
                 self.runtime.executor.dispatch_node(
                     ticket_id=self.runtime.executor.ticket.id, node_id=node, tokens=self.runtime.executor.tokens,
@@ -133,6 +136,8 @@ class NodeRunningState(NodeState):
                 )
         else:
             self.runtime.set_state(state[1])
+            context[f'{self.runtime.executor.node.name}_state'] = state[1]
+            node_operator.update(pk=self.runtime.executor.node.id, partial=True, context=context)
             if state == DENIED:
                 next_nodes = self.runtime.executor.get_next_nodes()
                 if next_nodes:

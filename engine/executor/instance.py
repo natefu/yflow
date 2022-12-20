@@ -26,7 +26,7 @@ class InstanceExecutor(SchedulerMixin):
         return self.instance.state
 
     def run(self) -> [str, dict]:
-        parameters: dict = build_node_variables(node=self.node, ticket=self.ticket)
+        parameters: dict = build_node_variables(node=self.node)
         scheme: dict = self.instance.scheme
         executor = ActivityExecutor(parameters=parameters, scheme=scheme)
         return executor.run()
