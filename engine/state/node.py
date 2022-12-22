@@ -150,7 +150,8 @@ class NodeRunningState(NodeState):
             self.runtime.executor.dispatch_ticket(ticket_id=self.runtime.executor.ticket.id, command=FAIL)
 
     def run(self):
-        raise NotImplementedError('NOT IMPLEMENT')
+        super().run()
+        return
 
     def complete(self):
         if self.runtime.executor.node.element in [REVIEW_TASK, HTTP_TASK]:
