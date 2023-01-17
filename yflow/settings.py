@@ -85,16 +85,37 @@ WSGI_APPLICATION = 'yflow.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
+        'ENGINE': 'storage.mysql.pooled',
         'NAME': 'yflow',
         'HOST': '127.0.0.1',
-        'PORT': 3306,
+        'PORT': 3307,
         'USER': 'root',
-        'PASSWORD': '12345678'
+        'PASSWORD': '12345678',
+        'OPTIONS': {
+            'maxconnections': 100,
+            'autocommit': True
+        },
+    },
+    'slave': {
+        'ENGINE': 'storage.mysql.pooled',
+        'NAME': 'yflow',
+        'HOST': '127.0.0.1',
+        'PORT': 3308,
+        'USER': 'root',
+        'PASSWORD': '12345678',
+        'OPTIONS': {
+            'maxconnections': 100,
+            'autocommit': True
+        },
     }
 }
 
+REDIS_HOST = '127.0.0.1'
+REDIS_PORT = 6379
+REDIS_DB = 1
 
+
+DATABASE_ROUTERS = ['storage.mysql.router.router.YFlowRouter']
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators

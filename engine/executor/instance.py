@@ -1,5 +1,6 @@
 import json
 import time
+import django
 
 from client.http.implement.simple_client import HttpClient
 from constants import (
