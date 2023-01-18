@@ -119,18 +119,30 @@ class DatetimeField(Field):
         else:
             self._value = value
 
+
 class ForeignField(Field):
-    def __init__(self, index_name: str, primary: bool = False, unique: bool = False):
+    def __init__(self, model, primary: bool = False, unique: bool = False):
         super().__init__(Category.DEFINED, primary, unique)
-        self._index_name = index_name
+        self._model = model
 
     @property
-    def index_name(self):
-        return self._index_name
+    def model(self):
+        return self._model
 
-    @index_name.setter
-    def index_name(self, index_name):
-        self._index_name = index_name
+    @model.setter
+    def index_name(self, model):
+        self._model = model
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        if isinstance(value, str) or isinstance(value, int):
+            self._value = value
+        else:
+            raise AttributeError
 
 
 class BaseModel:
@@ -213,11 +225,12 @@ class BaseModel:
         for foreign_key in BaseModel.Meta.foreign_keys:
             _foreign_key: ForeignField = self.__dict__.get(foreign_key, '')
             assert isinstance(_foreign_key, ForeignField)
-            # primary -> foreign index
+            assert conn.exists(f'{_foreign_key.model.Meta.index_name}-{_foreign_key.value}')
+            # primary -> foreign index || write in the same key with whole model body
             conn.hset(f'{self.Meta.index_name}-{name}', _foreign_key.get_ori_value(), 1)
 
             # foreign index -> primary
-            prefix = f'{self.Meta.index_name}-{_foreign_key.index_name}-{_foreign_key.get_ori_value()}'
+            prefix = f'{self.Meta.index_name}-{foreign_key}-{_foreign_key.get_ori_value()}'
             foreign_position = conn.incr(f'{prefix}_incr_count')
             conn.incr(f'{prefix}_real_count')
             if foreign_position % BaseModel.Meta.PARTITION_LENGTH == 1:
@@ -225,20 +238,17 @@ class BaseModel:
             else:
                 partition = conn.get(f'{prefix}_partition')
             conn.hset(f'{prefix}_partition_{partition}', f'{_foreign_key.get_ori_value()}-{name}', 1)
-            metadata[_foreign_key.index_name] = foreign_position
+            metadata[foreign_key] = foreign_position
         return metadata
 
     def _delete_foreign_key(self, name, metadata):
-        if BaseModel.Meta.foreign_keys:
-            # delete primary -> foreign index
-            conn.delete(f'{self.Meta.index_name}-{name}')
         for foreign_key in BaseModel.Meta.foreign_keys:
             _foreign_key: ForeignField = self.__dict__.get(foreign_key, '')
             assert isinstance(_foreign_key, ForeignField)
             # delete foreign index -> primary
-            prefix = f'{self.Meta.index_name}-{_foreign_key.index_name}-{_foreign_key.get_ori_value()}'
+            prefix = f'{self.Meta.index_name}-{foreign_key}-{_foreign_key.get_ori_value()}'
             conn.decr(f'{prefix}_real_count')
-            foreign_position = metadata.get(_foreign_key.index_name, -1)
+            foreign_position = metadata.get(foreign_key, -1)
             assert foreign_position != -1
             partition = (foreign_position-1) // BaseModel.Meta.PARTITION_LENGTH + 1
             conn.hdel(f'{prefix}_partition_{partition}', f'{_foreign_key.get_ori_value()}-{name}')
@@ -278,6 +288,20 @@ class BaseModel:
         for key, value in values.items():
             self.__dict__.get(key).value = value
         self.save()
+
+    def query(self, **params): # only support for one foreign field
+        if len(params.items()):
+            raise NotImplementedError
+
+        key, value = list(params.items())[0]
+        prefix = f'{self.Meta.index_name}-{key}-{value}'
+        partition = conn.get(f'{prefix}_partition')
+        ans = []
+        for i in range(1, partition+1):
+            result = conn.hgetall(f'{prefix}_partition_{partition}')
+            ans.extend([key.split('-')[1] for _, round2 in result.items() for key, _ in round2.items()])
+        return ans
+
 
     @classmethod
     def from_redis(cls, id):
